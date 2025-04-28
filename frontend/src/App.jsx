@@ -10,23 +10,26 @@ import AdminDashboard from './pages/AdminDashboard';
 import CashierDashboard from './pages/CashierDashboard';
 import StorekeeperDashboard from './pages/StorekeeperDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import Cart from "./components/Cart/Cart";
-import CheckoutPage from "./pages/CheckoutPage";
-import Orders from "./components/Order/Orders";
-import OrderConfirmation from "./components/Order/OrderConfirmation";
+import Cart from './components/Cart/Cart';
+import CheckoutPage from './pages/CheckoutPage';
+import Orders from './components/Order/Orders';
+import OrderConfirmation from './components/Order/OrderConfirmation';
 import { CartProvider } from './context/CartContext';
 import Products from './pages/Products';
-import UserTransactions from "./pages/UserTransactions";
+import UserTransactions from './pages/UserTransactions';
 import PrivateRoute from './components/PrivateRoute';
 import PaymentPage from './pages/PaymentPage';
 import OrderDetails from './components/Order/OrderDetails';
-import ProductPreview from "./components/Order/ProductPreview";
-import UpdateOrderStatus from "./pages/UpdateOrderStatus";
-import AddSupplier from "./components/AddSupplier";
-import SupplierList from "./components/SupplierList";
-import PerformanceReport from "./components/PerformanceReport";
-import PurchaseOrder from "./components/PurchaseOrder";
-import RestockAlerts from "./components/RestockAlerts";
+import ProductPreview from './components/Order/ProductPreview';
+import UpdateOrderStatus from './pages/UpdateOrderStatus';
+import AddSupplier from './components/AddSupplier';
+import SupplierList from './components/SupplierList';
+import PerformanceReport from './components/PerformanceReport';
+import PurchaseOrder from './components/PurchaseOrder';
+import RestockAlerts from './components/RestockAlerts';
+import CreateDeliverySchedule from './components/delivary manager/CreateDeliverySchedule';
+import DeliverySchedules from './components/delivary manager/DeliverySchedules';
+import EditDeliverySchedule from './components/delivary manager/EditDeliverySchedule';
 
 const App = () => {
   return (
@@ -62,6 +65,20 @@ const App = () => {
             element={<ProductPreview />}
           />
 
+          {/* Delivery Schedule Routes */}
+          <Route
+            path="/create-delivery-schedule/:orderId"
+            element={<PrivateRoute element={<CreateDeliverySchedule />} />}
+          />
+          <Route
+            path="/delivery-schedules"
+            element={<PrivateRoute element={<DeliverySchedules />} />}
+          />
+          <Route
+            path="/edit-delivery-schedule/:id"
+            element={<PrivateRoute element={<EditDeliverySchedule />} />}
+          />
+
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<Profile />} />
@@ -69,7 +86,6 @@ const App = () => {
           </Route>
 
           {/* Admin Routes */}
-
           <Route path="/admin" element={<AdminDashboard />} />
 
           {/* Special Roles Routes */}

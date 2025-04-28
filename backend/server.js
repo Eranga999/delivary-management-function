@@ -4,11 +4,13 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import cartRoutes from "./routes/cartRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js"; 
-import inventoryRoutes from "./routes/inventoryRoutes.js";
-import transactionRoutes from "./routes/transactionRoutes.js";
-import supplierRoutes from "./routes/supplierRoutes.js";
+import cartRoutes from './routes/cartRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import inventoryRoutes from './routes/inventoryRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
+import supplierRoutes from './routes/supplierRoutes.js';
+import deliveryScheduleRoutes from './routes/deliveryScheduleRoutes.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -29,11 +31,12 @@ app.get('/', (request, response) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use("/api/inventory", inventoryRoutes);
+app.use('/api/inventory', inventoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
-app.use("/api/transactions", transactionRoutes);
-app.use("/api/suppliers", supplierRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/delivery-schedules', deliveryScheduleRoutes);
 
 // Enhanced error handling
 mongoose
