@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FiPackage, FiTruck, FiCheckCircle, FiX } from 'react-icons/fi';
+import { Link, useNavigate } from 'react-router-dom';
+import { FiPackage, FiTruck, FiCheckCircle, FiX, FiRefreshCw } from 'react-icons/fi';
 import DeliveryForm from '../components/delivary manager/DeliveryForm';
+import axios from 'axios';
+import { useSnackbar } from 'notistack';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5555';
 
 const DeliveryPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('All');
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   const tabs = [
     { name: 'All', icon: <FiPackage className="mr-2" /> },
@@ -16,46 +23,97 @@ const DeliveryPage = () => {
     { name: 'Delivered', icon: <FiCheckCircle className="mr-2" /> },
   ];
 
-  useEffect(() => {
-    const fetchDeliveries = async () => {
-      try {
-        const response = await fetch('/api/orders/delivery', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}` // Adjust based on your auth setup
-          }
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setDeliveries(data);
-        } else {
-          setError(data.message || 'Failed to fetch deliveries');
-        }
-      } catch (err) {
-        setError('Error fetching deliveries');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const getAuthToken = () => {
+    const userInfo = localStorage.getItem('userInfo');
+    if (!userInfo) {
+      return null;
+    }
+    try {
+      const parsedUserInfo = JSON.parse(userInfo);
+      return parsedUserInfo.token;
+    } catch (error) {
+      console.error('Error parsing user info:', error);
+      return null;
+    }
+  };
 
+  const fetchDeliveries = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = getAuthToken();
+      if (!token) {
+        enqueueSnackbar('Please login to view deliveries', { variant: 'warning' });
+        navigate('/login');
+        return;
+      }
+
+      const config = {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      const response = await axios.get(`${API_BASE_URL}/api/orders/delivery`, config);
+      setDeliveries(response.data);
+      enqueueSnackbar('Deliveries updated successfully', { variant: 'success' });
+    } catch (err) {
+      console.error('Error fetching deliveries:', err);
+      if (err.response?.status === 401) {
+        enqueueSnackbar('Session expired. Please login again', { variant: 'error' });
+        localStorage.removeItem('userInfo');
+        navigate('/login');
+        return;
+      }
+      const errorMessage = err.response?.data?.message || 'Failed to fetch deliveries';
+      setError(errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDeliveries();
   }, []);
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchDeliveries();
+  };
+
   const handleCancel = async (orderId) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}/cancel`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Adjust based on your auth setup
-        }
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setDeliveries(deliveries.filter(delivery => delivery._id !== orderId));
-      } else {
-        alert(data.message || 'Failed to cancel order');
+      const token = getAuthToken();
+      if (!token) {
+        enqueueSnackbar('Please login to perform this action', { variant: 'warning' });
+        navigate('/login');
+        return;
       }
+
+      const config = {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      await axios.put(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {}, config);
+      setDeliveries(deliveries.filter(delivery => delivery._id !== orderId));
+      enqueueSnackbar('Order cancelled successfully', { variant: 'success' });
     } catch (err) {
-      alert('Error cancelling order');
+      console.error('Error cancelling order:', err);
+      if (err.response?.status === 401) {
+        enqueueSnackbar('Session expired. Please login again', { variant: 'error' });
+        localStorage.removeItem('userInfo');
+        navigate('/login');
+        return;
+      }
+      const errorMessage = err.response?.data?.message || 'Failed to cancel order';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     }
   };
 
@@ -102,13 +160,25 @@ const DeliveryPage = () => {
             <h2 className="text-2xl font-bold text-gray-800">Deliveries</h2>
             <p className="text-gray-600 text-sm">Track your supermarket orders in real-time</p>
           </div>
-          <Link
-            to="/products"
-            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-orange-500 transition-all duration-200 font-medium"
-          >
-            <FiPackage className="text-lg" />
-            <span>New Order</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 transition-all duration-200 ${
+                refreshing ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:bg-gray-100'
+              }`}
+            >
+              <FiRefreshCw className={`text-lg ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+            <Link
+              to="/products"
+              className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-orange-500 transition-all duration-200 font-medium"
+            >
+              <FiPackage className="text-lg" />
+              <span>New Order</span>
+            </Link>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -132,9 +202,19 @@ const DeliveryPage = () => {
 
         {/* Delivery List */}
         {loading ? (
-          <div className="text-center text-gray-600">Loading deliveries...</div>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+          </div>
         ) : error ? (
-          <div className="text-center text-red-600">{error}</div>
+          <div className="bg-red-50 p-4 rounded-lg text-red-600 text-center">
+            <p>{error}</p>
+            <button
+              onClick={handleRefresh}
+              className="mt-2 text-red-600 hover:text-red-800 underline"
+            >
+              Try Again
+            </button>
+          </div>
         ) : filteredDeliveries.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow-md text-center">
             <FiPackage className="text-4xl text-gray-400 mx-auto mb-4" />
