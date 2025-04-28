@@ -1,11 +1,11 @@
-import { useState, useContext, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import { useSnackbar } from 'notistack';
-import axios from 'axios';
-import Header from '../components/home/Header';
-import Spinner from '../components/Spinner';
-import './Profile.css';
+import { useState, useContext, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import { useSnackbar } from "notistack";
+import axios from "axios";
+import Header from "../components/home/Header";
+import Spinner from "../components/Spinner";
+import "./Profile.css";
 
 const Profile = () => {
   const { user, updateProfile, fetchUserProfile } = useContext(AuthContext);
@@ -13,24 +13,24 @@ const Profile = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState('edit-profile');
+  const [activeSection, setActiveSection] = useState("edit-profile");
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5555';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5555";
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
     address: {
-      street: '',
-      city: '',
-      state: '',
-      zipCode: ''
-    }
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+    },
   });
 
   // Fetch user profile when the component mounts
@@ -40,53 +40,60 @@ const Profile = () => {
       console.log("Fetching user profile data...");
       const result = await fetchUserProfile();
       console.log("Fetch result:", result);
-      
+
       if (!result.success) {
-        enqueueSnackbar(result.message, { variant: 'error' });
+        enqueueSnackbar(result.message, { variant: "error" });
       }
       setIsLoading(false);
     };
-    
+
     loadUserProfile();
   }, [enqueueSnackbar]);
 
   // Update the form when user data changes
   useEffect(() => {
     console.log("User data received in Profile:", user);
-    
+
     if (user) {
       const address = user.address || {};
-      
+
       setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        password: '',
-        confirmPassword: '',
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        password: "",
+        confirmPassword: "",
         address: {
-          street: address.street || '',
-          city: address.city || '',
-          state: address.state || '',
-          zipCode: address.zipCode || ''
-        }
+          street: address.street || "",
+          city: address.city || "",
+          state: address.state || "",
+          zipCode: address.zipCode || "",
+        },
       });
     }
   }, [user]);
 
   // Fetch orders when the "Order History" section is selected
   useEffect(() => {
-    if (activeSection === 'order-history') {
+    if (activeSection === "order-history") {
       const fetchOrders = async () => {
         setOrdersLoading(true);
         try {
           const config = {
-            headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('userInfo')).token}` },
+            headers: {
+              Authorization: `Bearer ${
+                JSON.parse(localStorage.getItem("userInfo")).token
+              }`,
+            },
           };
-          const { data } = await axios.get(`${API_BASE_URL}/api/orders`, config);
+          const { data } = await axios.get(
+            `${API_BASE_URL}/api/orders`,
+            config
+          );
           setOrders(data);
         } catch (error) {
-          console.error('Error fetching orders:', error);
-          enqueueSnackbar('Failed to load order history', { variant: 'error' });
+          console.error("Error fetching orders:", error);
+          enqueueSnackbar("Failed to load order history", { variant: "error" });
         } finally {
           setOrdersLoading(false);
         }
@@ -97,28 +104,28 @@ const Profile = () => {
   }, [activeSection, enqueueSnackbar]);
 
   const handleChange = (e) => {
-    if (e.target.name.includes('.')) {
-      const [parent, child] = e.target.name.split('.');
+    if (e.target.name.includes(".")) {
+      const [parent, child] = e.target.name.split(".");
       setFormData({
         ...formData,
         [parent]: {
           ...formData[parent],
-          [child]: e.target.value
-        }
+          [child]: e.target.value,
+        },
       });
     } else {
       setFormData({
         ...formData,
-        [e.target.name]: e.target.value
+        [e.target.name]: e.target.value,
       });
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
-      enqueueSnackbar('Passwords do not match', { variant: 'error' });
+      enqueueSnackbar("Passwords do not match", { variant: "error" });
       return;
     }
 
@@ -131,23 +138,23 @@ const Profile = () => {
     setIsSubmitting(false);
 
     if (result.success) {
-      enqueueSnackbar('Profile updated successfully', { variant: 'success' });
+      enqueueSnackbar("Profile updated successfully", { variant: "success" });
       setFormData({
         ...formData,
-        password: '',
-        confirmPassword: ''
+        password: "",
+        confirmPassword: "",
       });
     } else {
-      enqueueSnackbar(result.message, { variant: 'error' });
+      enqueueSnackbar(result.message, { variant: "error" });
     }
   };
 
   const getUserInitials = () => {
-    if (!user || !user.name) return '?';
+    if (!user || !user.name) return "?";
     return user.name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
       .toUpperCase()
       .substring(0, 2);
   };
@@ -155,13 +162,11 @@ const Profile = () => {
   // Render content based on the active section
   const renderSection = () => {
     switch (activeSection) {
-      case 'edit-profile':
+      case "edit-profile":
         return (
           <form className="profile-form" onSubmit={handleSubmit}>
             <div className="avatar-section">
-              <div className="avatar-circle">
-                {getUserInitials()}
-              </div>
+              <div className="avatar-circle">{getUserInitials()}</div>
               <div className="avatar-info">
                 <div className="avatar-name">{user?.name}</div>
                 <div className="avatar-email">{user?.email}</div>
@@ -170,7 +175,9 @@ const Profile = () => {
 
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="name" className="form-label">Full Name</label>
+                <label htmlFor="name" className="form-label">
+                  Full Name
+                </label>
                 <input
                   type="text"
                   name="name"
@@ -180,9 +187,11 @@ const Profile = () => {
                   className="form-input"
                 />
               </div>
-              
+
               <div className="form-group">
-                <label htmlFor="email" className="form-label">Email</label>
+                <label htmlFor="email" className="form-label">
+                  Email
+                </label>
                 <input
                   type="email"
                   name="email"
@@ -192,9 +201,11 @@ const Profile = () => {
                   className="form-input"
                 />
               </div>
-              
+
               <div className="form-group">
-                <label htmlFor="phone" className="form-label">Phone</label>
+                <label htmlFor="phone" className="form-label">
+                  Phone
+                </label>
                 <input
                   type="text"
                   name="phone"
@@ -206,7 +217,9 @@ const Profile = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="address.street" className="form-label">Street Address</label>
+                <label htmlFor="address.street" className="form-label">
+                  Street Address
+                </label>
                 <input
                   type="text"
                   name="address.street"
@@ -218,7 +231,9 @@ const Profile = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="address.city" className="form-label">City</label>
+                <label htmlFor="address.city" className="form-label">
+                  City
+                </label>
                 <input
                   type="text"
                   name="address.city"
@@ -230,7 +245,9 @@ const Profile = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="address.state" className="form-label">State</label>
+                <label htmlFor="address.state" className="form-label">
+                  State
+                </label>
                 <input
                   type="text"
                   name="address.state"
@@ -242,7 +259,9 @@ const Profile = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="address.zipCode" className="form-label">Zip Code</label>
+                <label htmlFor="address.zipCode" className="form-label">
+                  Zip Code
+                </label>
                 <input
                   type="text"
                   name="address.zipCode"
@@ -257,7 +276,9 @@ const Profile = () => {
                 <h3>Change Password</h3>
                 <div className="form-grid">
                   <div className="form-group">
-                    <label htmlFor="password" className="form-label">New Password</label>
+                    <label htmlFor="password" className="form-label">
+                      New Password
+                    </label>
                     <input
                       type="password"
                       name="password"
@@ -267,9 +288,11 @@ const Profile = () => {
                       className="form-input"
                     />
                   </div>
-                  
+
                   <div className="form-group">
-                    <label htmlFor="confirmPassword" className="form-label">Confirm New Password</label>
+                    <label htmlFor="confirmPassword" className="form-label">
+                      Confirm New Password
+                    </label>
                     <input
                       type="password"
                       name="confirmPassword"
@@ -289,12 +312,12 @@ const Profile = () => {
                 disabled={isSubmitting}
                 className="update-button"
               >
-                {isSubmitting ? 'Updating...' : 'Update Profile'}
+                {isSubmitting ? "Updating..." : "Update Profile"}
               </button>
             </div>
           </form>
         );
-      case 'order-history':
+      case "order-history":
         return (
           <div className="order-history-section">
             <h3>Order History</h3>
@@ -325,7 +348,9 @@ const Profile = () => {
                       <td>
                         <button
                           className="view-details-btn"
-                          onClick={() => navigate(`/order-details/${order._id}`)}
+                          onClick={() =>
+                            navigate(`/order-details/${order._id}`)
+                          }
                         >
                           View Details
                         </button>
@@ -337,8 +362,10 @@ const Profile = () => {
             )}
           </div>
         );
-      case 'payments':
-        return <div className="section-placeholder">Payments - Coming Soon</div>;
+      case "payments":
+        return (
+          <div className="section-placeholder">Payments - Coming Soon</div>
+        );
       default:
         return null;
     }
@@ -347,26 +374,32 @@ const Profile = () => {
   return (
     <div className="profile-container">
       <Header searchTerm="" setSearchTerm={() => {}} cartCount={0} />
-      
+
       <div className="profile-wrapper">
         <div className="profile-sidebar">
           <h3 className="sidebar-title">Profile Options</h3>
           <ul className="sidebar-menu">
             <li
-              className={`sidebar-item ${activeSection === 'edit-profile' ? 'active' : ''}`}
-              onClick={() => setActiveSection('edit-profile')}
+              className={`sidebar-item ${
+                activeSection === "edit-profile" ? "active" : ""
+              }`}
+              onClick={() => setActiveSection("edit-profile")}
             >
               Edit Profile
             </li>
             <li
-              className={`sidebar-item ${activeSection === 'order-history' ? 'active' : ''}`}
-              onClick={() => setActiveSection('order-history')}
+              className={`sidebar-item ${
+                activeSection === "order-history" ? "active" : ""
+              }`}
+              onClick={() => setActiveSection("order-history")}
             >
               Order History
             </li>
             <li
-              className={`sidebar-item ${activeSection === 'payments' ? 'active' : ''}`}
-              onClick={() => setActiveSection('payments')}
+              className={`sidebar-item ${
+                activeSection === "payments" ? "active" : ""
+              }`}
+              onClick={() => setActiveSection("payments")}
             >
               Payments
             </li>
@@ -382,7 +415,7 @@ const Profile = () => {
                 Back to Home
               </Link>
             </div>
-            
+
             {isLoading ? (
               <div className="loading-container">
                 <Spinner />

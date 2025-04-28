@@ -1,12 +1,12 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CartContext } from '../../context/CartContext';
-import { AuthContext } from '../../context/AuthContext';
-import axios from 'axios';
-import { useSnackbar } from 'notistack';
-import './Checkout.css';
+import React, { useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { CartContext } from "../../context/CartContext";
+import { AuthContext } from "../../context/AuthContext";
+import axios from "axios";
+import { useSnackbar } from "notistack";
+import "./Checkout.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5555';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5555";
 
 const Checkout = () => {
   const { cart, clearCart } = useContext(CartContext);
@@ -15,22 +15,22 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    shippingAddress: '',
-    paymentMethod: 'online-payment',
+    fullName: "",
+    email: "",
+    shippingAddress: "",
+    paymentMethod: "online-payment",
   });
 
   // Pre-fill form with user data
   useEffect(() => {
     if (user) {
       setFormData({
-        fullName: user.name || '',
-        email: user.email || '',
+        fullName: user.name || "",
+        email: user.email || "",
         shippingAddress: user.address
           ? `${user.address.street}, ${user.address.city}, ${user.address.state} ${user.address.zipCode}`.trim()
-          : '',
-        paymentMethod: 'online-payment',
+          : "",
+        paymentMethod: "online-payment",
       });
     }
     if (cart) {
@@ -41,8 +41,10 @@ const Checkout = () => {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!user) {
-      enqueueSnackbar('Please log in to proceed with checkout', { variant: 'warning' });
-      navigate('/login');
+      enqueueSnackbar("Please log in to proceed with checkout", {
+        variant: "warning",
+      });
+      navigate("/login");
     }
   }, [user, navigate, enqueueSnackbar]);
 
@@ -57,10 +59,10 @@ const Checkout = () => {
 
   const isFormComplete = () => {
     return (
-      formData.fullName.trim() !== '' &&
-      formData.email.trim() !== '' &&
-      formData.shippingAddress.trim() !== '' &&
-      formData.paymentMethod !== ''
+      formData.fullName.trim() !== "" &&
+      formData.email.trim() !== "" &&
+      formData.shippingAddress.trim() !== "" &&
+      formData.paymentMethod !== ""
     );
   };
 
@@ -68,7 +70,7 @@ const Checkout = () => {
     if (!cart || !cart.items) return 0;
     return cart.items
       .reduce((total, item) => {
-        if (item.product && typeof item.product.price === 'number') {
+        if (item.product && typeof item.product.price === "number") {
           return total + item.product.price * item.quantity;
         }
         return total;
@@ -89,19 +91,25 @@ const Checkout = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       };
 
-      const response = await axios.post(`${API_BASE_URL}/api/orders/checkout`, payload, config);
+      const response = await axios.post(
+        `${API_BASE_URL}/api/orders/checkout`,
+        payload,
+        config
+      );
 
       if (response.data.orderId) {
         clearCart();
-        enqueueSnackbar('Order placed successfully!', { variant: 'success' });
+        enqueueSnackbar("Order placed successfully!", { variant: "success" });
         navigate(`/order-confirmation/${response.data.orderId}`);
       } else {
-        throw new Error('Order ID not received');
+        throw new Error("Order ID not received");
       }
     } catch (error) {
-      console.error('Error during checkout:', error);
-      const message = error.response?.data?.message || 'Failed to place order. Please try again.';
-      enqueueSnackbar(message, { variant: 'error' });
+      console.error("Error during checkout:", error);
+      const message =
+        error.response?.data?.message ||
+        "Failed to place order. Please try again.";
+      enqueueSnackbar(message, { variant: "error" });
     }
   };
 
@@ -115,9 +123,9 @@ const Checkout = () => {
         <h2>Checkout</h2>
         <p>Your cart is empty</p>
         <button
-          onClick={() => navigate('/products')}
+          onClick={() => navigate("/products")}
           className="place-order-btn"
-          style={{ background: '#007bff' }}
+          style={{ background: "#007bff" }}
         >
           Continue Shopping
         </button>
@@ -144,15 +152,17 @@ const Checkout = () => {
             <tbody>
               {cart.items.map((item) => (
                 <tr key={item.product?._id || item._id}>
-                  <td>{item.product?.name || 'Unknown Product'}</td>
-                  <td>${item.product?.price?.toFixed(2) || '0.00'}</td>
+                  <td>{item.product?.name || "Unknown Product"}</td>
+                  <td>Rs.{item.product?.price?.toFixed(2) || "0.00"}</td>
                   <td>{item.quantity}</td>
-                  <td>${((item.product?.price || 0) * item.quantity).toFixed(2)}</td>
+                  <td>
+                    Rs.{((item.product?.price || 0) * item.quantity).toFixed(2)}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="total-price">Total: ${getTotalPrice()}</div>
+          <div className="total-price">Total: Rs.{getTotalPrice()}</div>
         </div>
 
         {/* Checkout Form */}
@@ -195,7 +205,7 @@ const Checkout = () => {
                 name="paymentMethod"
                 id="online-payment"
                 value="online-payment"
-                checked={formData.paymentMethod === 'online-payment'}
+                checked={formData.paymentMethod === "online-payment"}
                 onChange={handlePaymentChange}
               />
               <span>Online Payment</span>
@@ -206,7 +216,7 @@ const Checkout = () => {
                 name="paymentMethod"
                 id="in-store-payment"
                 value="in-store-payment"
-                checked={formData.paymentMethod === 'in-store-payment'}
+                checked={formData.paymentMethod === "in-store-payment"}
                 onChange={handlePaymentChange}
               />
               <span>In-Store Payment</span>

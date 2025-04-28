@@ -23,8 +23,13 @@ const ProtectedRoute = ({ adminOnly = false }) => {
     return adminOnly ? <Navigate to="/storekeeper" /> : <Outlet />;
   }
 
-  // Only allow useradmin@example.com to access admin pages
-  if (adminOnly && user.email !== 'useradmin@example.com') {
+  if (user.email === 'useradmin@example.com') {
+    return adminOnly ? <Navigate to="/admin" /> : <Outlet />;
+  }
+
+
+  // Then handle normal admin check
+  if (adminOnly && user.role !== 'admin') {
     return <Navigate to="/" />;
   }
 

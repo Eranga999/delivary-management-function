@@ -14,13 +14,12 @@
 }
 
 .auth-container {
-  min-height: calc(100vh - 70px); /* Adjusted to account for header height */
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 2rem;
   background-color: var(--bg-color);
-  margin-top: 1rem; /* Add small margin after header */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 

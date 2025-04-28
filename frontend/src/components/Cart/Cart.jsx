@@ -1,12 +1,13 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { CartContext } from '../../context/CartContext';
-import { FiTrash2, FiPlus, FiMinus } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
-import { useSnackbar } from 'notistack';
-import './Cart.css';
+import React, { useContext, useEffect, useState } from "react";
+import { CartContext } from "../../context/CartContext";
+import { FiTrash2, FiPlus, FiMinus } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { useSnackbar } from "notistack";
+import "./Cart.css";
 
 const Cart = () => {
-  const { cart, updateQuantity, removeFromCart, clearCart } = useContext(CartContext);
+  const { cart, updateQuantity, removeFromCart, clearCart } =
+    useContext(CartContext);
   const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(true);
 
@@ -17,7 +18,9 @@ const Cart = () => {
   }, [cart]);
 
   const getTotalPrice = () => {
-    return cart.items.reduce((total, item) => total + item.product.price * item.quantity, 0).toFixed(2);
+    return cart.items
+      .reduce((total, item) => total + item.product.price * item.quantity, 0)
+      .toFixed(2);
   };
 
   const handleQuantityChange = async (productId, delta) => {
@@ -28,7 +31,7 @@ const Cart = () => {
         try {
           await updateQuantity(productId, newQuantity);
         } catch (error) {
-          enqueueSnackbar(error.message, { variant: 'error' });
+          enqueueSnackbar(error.message, { variant: "error" });
         }
       }
     }
@@ -37,18 +40,20 @@ const Cart = () => {
   const handleRemoveItem = async (productId, productName) => {
     try {
       await removeFromCart(productId);
-      enqueueSnackbar(`${productName} removed from cart`, { variant: 'success' });
+      enqueueSnackbar(`${productName} removed from cart`, {
+        variant: "success",
+      });
     } catch (error) {
-      enqueueSnackbar(error.message, { variant: 'error' });
+      enqueueSnackbar(error.message, { variant: "error" });
     }
   };
 
   const handleClearCart = async () => {
     try {
       await clearCart();
-      enqueueSnackbar('Cart cleared', { variant: 'success' });
+      enqueueSnackbar("Cart cleared", { variant: "success" });
     } catch (error) {
-      enqueueSnackbar(error.message, { variant: 'error' });
+      enqueueSnackbar(error.message, { variant: "error" });
     }
   };
 
@@ -84,15 +89,21 @@ const Cart = () => {
                 <tr key={item.product._id}>
                   <td>
                     <div className="cart-item">
-                      <img src={item.product.image} alt={item.product.name} className="cart-image" />
+                      <img
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="cart-image"
+                      />
                       <span>{item.product.name}</span>
                     </div>
                   </td>
-                  <td>${item.product.price.toFixed(2)}</td>
+                  <td>Rs.{item.product.price.toFixed(2)}</td>
                   <td>
                     <div className="quantity-controls">
                       <button
-                        onClick={() => handleQuantityChange(item.product._id, -1)}
+                        onClick={() =>
+                          handleQuantityChange(item.product._id, -1)
+                        }
                         className="quantity-btn"
                         disabled={item.quantity <= 1}
                       >
@@ -100,7 +111,9 @@ const Cart = () => {
                       </button>
                       <span>{item.quantity}</span>
                       <button
-                        onClick={() => handleQuantityChange(item.product._id, 1)}
+                        onClick={() =>
+                          handleQuantityChange(item.product._id, 1)
+                        }
                         className="quantity-btn"
                         disabled={item.quantity >= item.product.currentStock}
                       >
@@ -108,10 +121,12 @@ const Cart = () => {
                       </button>
                     </div>
                   </td>
-                  <td>${(item.product.price * item.quantity).toFixed(2)}</td>
+                  <td>Rs.{(item.product.price * item.quantity).toFixed(2)}</td>
                   <td>
                     <button
-                      onClick={() => handleRemoveItem(item.product._id, item.product.name)}
+                      onClick={() =>
+                        handleRemoveItem(item.product._id, item.product.name)
+                      }
                       className="remove-btn"
                     >
                       <FiTrash2 />

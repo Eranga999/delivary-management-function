@@ -1,19 +1,20 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { AuthContext } from './AuthContext';
+import { useSnackbar } from 'notistack';
 
-const CartContext = createContext();
+export const CartContext = createContext();
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5555';
 
-const CartProvider = ({ children }) => {
-  const { user } = useContext(AuthContext);
+export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState({ items: [] });
+  const { user } = useContext(AuthContext);
+  const { enqueueSnackbar } = useSnackbar();
 
-  // Fetch cart data when user is logged in
   useEffect(() => {
     const fetchCart = async () => {
-      if (user && user.token) {
+      if (user) {
         try {
           const config = {
             headers: { Authorization: `Bearer ${user.token}` },
@@ -22,45 +23,52 @@ const CartProvider = ({ children }) => {
           setCart(data);
         } catch (error) {
           console.error('Error fetching cart:', error);
-          setCart({ items: [] }); // Reset cart on error
+          enqueueSnackbar('Failed to load cart', { variant: 'error' });
         }
+      } else {
+        setCart({ items: [] });
       }
     };
+
     fetchCart();
   }, [user]);
 
-  const addToCart = async (product) => {
+  const addToCart = async (product, quantity = 1) => {
     if (!user) {
-      throw new Error('Please log in to add items to your cart.');
+      enqueueSnackbar('Please log in to add items to your cart', { variant: 'warning' });
+      return;
     }
 
     try {
       const config = {
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${user.token}`,
         },
       };
-
-      const quantity = product.quantity || 1;
       const { data } = await axios.post(
         `${API_BASE_URL}/api/cart`,
         { productId: product._id, quantity },
         config
       );
       setCart(data);
-      return data;
+      enqueueSnackbar(`${product.name} added to cart`, { variant: 'success' });
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to add item to cart';
-      console.error('Error adding to cart:', errorMessage, error);
-      throw new Error(errorMessage);
+      console.error('Error adding to cart:', error);
+      enqueueSnackbar(error.response?.data?.message || 'Failed to add to cart', { variant: 'error' });
     }
   };
 
   const updateQuantity = async (productId, quantity) => {
+    if (!user) {
+      enqueueSnackbar('Please log in to update your cart', { variant: 'warning' });
+      return;
+    }
+
     try {
       const config = {
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${user.token}`,
         },
       };
@@ -70,48 +78,47 @@ const CartProvider = ({ children }) => {
         config
       );
       setCart(data);
-      return data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to update quantity';
-      console.error('Error updating quantity:', errorMessage, error);
-      throw new Error(errorMessage);
+      console.error('Error updating cart:', error);
+      enqueueSnackbar(error.response?.data?.message || 'Failed to update cart', { variant: 'error' });
     }
   };
 
   const removeFromCart = async (productId) => {
+    if (!user) {
+      enqueueSnackbar('Please log in to modify your cart', { variant: 'warning' });
+      return;
+    }
+
     try {
       const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
+        headers: { Authorization: `Bearer ${user.token}` },
       };
       const { data } = await axios.delete(`${API_BASE_URL}/api/cart/${productId}`, config);
       setCart(data);
-      return data;
+      enqueueSnackbar('Item removed from cart', { variant: 'success' });
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to remove item from cart';
-      console.error('Error removing from cart:', errorMessage, error);
-      throw new Error(errorMessage);
+      console.error('Error removing from cart:', error);
+      enqueueSnackbar(error.response?.data?.message || 'Failed to remove from cart', { variant: 'error' });
     }
   };
 
   const clearCart = async () => {
+    if (!user) {
+      enqueueSnackbar('Please log in to clear your cart', { variant: 'warning' });
+      return;
+    }
+
     try {
       const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
+        headers: { Authorization: `Bearer ${user.token}` },
       };
       const { data } = await axios.delete(`${API_BASE_URL}/api/cart`, config);
       setCart(data);
-      return data;
+      enqueueSnackbar('Cart cleared', { variant: 'success' });
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to clear cart';
-      console.error('Error clearing cart:', errorMessage, error);
-      throw new Error(errorMessage);
+      console.error('Error clearing cart:', error);
+      enqueueSnackbar(error.response?.data?.message || 'Failed to clear cart', { variant: 'error' });
     }
   };
 
@@ -121,5 +128,3 @@ const CartProvider = ({ children }) => {
     </CartContext.Provider>
   );
 };
-
-export { CartContext, CartProvider };

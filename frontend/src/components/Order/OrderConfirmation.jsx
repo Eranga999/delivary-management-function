@@ -13,7 +13,6 @@ const OrderConfirmation = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showCancelAlert, setShowCancelAlert] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -42,34 +41,8 @@ const OrderConfirmation = () => {
   }, [orderId, navigate, enqueueSnackbar]);
 
   const handleGoToPayment = () => {
+    
     navigate(`/payment/${orderId}`);
-  };
-
-  const handleCancelOrder = async () => {
-    try {
-      const config = {
-        headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('userInfo')).token}` },
-      };
-      await axios.put(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {}, config);
-      enqueueSnackbar('Your order has been successfully cancelled', { variant: 'success' });
-      navigate('/');
-    } catch (error) {
-      console.error('Error cancelling order:', error);
-      enqueueSnackbar('Failed to cancel order', { variant: 'error' });
-      setShowCancelAlert(false);
-    }
-  };
-
-  const handleCancelClick = () => {
-    setShowCancelAlert(true);
-  };
-
-  const handleCancelConfirm = () => {
-    handleCancelOrder();
-  };
-
-  const handleCancelDecline = () => {
-    setShowCancelAlert(false);
   };
 
   if (loading) {
@@ -95,7 +68,7 @@ const OrderConfirmation = () => {
           <strong>Status:</strong> {order.status}
         </p>
         <p>
-          <strong>Total:</strong> ${order.totalPrice.toFixed(2)}
+          <strong>Total:</strong> Rs.{order.totalPrice.toFixed(2)}
         </p>
         <p>
           <strong>Billing Name:</strong> {order.billingInfo.fullName}
@@ -107,8 +80,10 @@ const OrderConfirmation = () => {
           <strong>Shipping Address:</strong> {order.shippingAddress}
         </p>
         <p>
-          <strong>Payment Method:</strong>{' '}
-          {order.paymentMethod === 'online-payment' ? 'Online Payment' : 'In-Store Payment'}
+          <strong>Payment Method:</strong>{" "}
+          {order.paymentMethod === "online-payment"
+            ? "Online Payment"
+            : "In-Store Payment"}
         </p>
         <h3>Order Items</h3>
         <table className="order-items-table">
@@ -123,70 +98,33 @@ const OrderConfirmation = () => {
           <tbody>
             {order.items.map((item, index) => (
               <tr key={index}>
-                <td>{item.product?.name || 'Unknown Product'}</td>
+                <td>{item.product?.name || "Unknown Product"}</td>
                 <td>{item.quantity}</td>
-                <td>${item.price.toFixed(2)}</td>
-                <td>${(item.price * item.quantity).toFixed(2)}</td>
+                <td>Rs.{item.price.toFixed(2)}</td>
+                <td>Rs.{(item.price * item.quantity).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="order-actions">
-        {order.paymentMethod === 'online-payment' ? (
-          <>
-            <button
-              onClick={handleGoToPayment}
-              className="go-to-payment-btn"
-            >
+        {/* Conditionally render the Go to Payment button */}
+        {order.paymentMethod === "online-payment" &&
+          order.status === "pending" && (
+            <button onClick={handleGoToPayment} className="go-to-payment-btn">
               Go to Payment
             </button>
-            <button
-              onClick={handleCancelClick}
-              className="cancel-order-btn"
-            >
-              Cancel Order
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => navigate('/products')}
-              className="continue-shopping-btn"
-            >
-              Continue Shopping
-            </button>
-            <button
-              onClick={handleCancelClick}
-              className="cancel-order-btn"
-            >
-              Cancel Order
-            </button>
-          </>
-        )}
+          )}
+        <button
+          onClick={() => navigate("/products")}
+          className="continue-shopping-btn"
+        >
+          Continue Shopping
+        </button>
+        <button onClick={() => navigate("/orders")} className="view-orders-btn">
+          View All Orders
+        </button>
       </div>
-
-      {showCancelAlert && (
-        <div className="cancel-alert-overlay">
-          <div className="cancel-alert">
-            <p>Are you sure you want to cancel your order?</p>
-            <div className="cancel-alert-actions">
-              <button
-                onClick={handleCancelConfirm}
-                className="cancel-confirm-btn"
-              >
-                Yes
-              </button>
-              <button
-                onClick={handleCancelDecline}
-                className="cancel-decline-btn"
-              >
-                No
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
