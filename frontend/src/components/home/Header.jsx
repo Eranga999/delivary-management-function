@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { FiSearch, FiShoppingCart, FiUser, FiLogOut, FiLogIn, FiChevronDown, FiUserPlus } from 'react-icons/fi';
+import { FiSearch, FiShoppingCart, FiUser, FiLogOut, FiLogIn, FiChevronDown, FiUserPlus, FiTruck } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -50,6 +50,17 @@ const Header = ({ searchTerm, setSearchTerm, cartCount }) => {
                     {cartCount}
                   </span>
                 )}
+              </Link>
+            </div>
+
+            {/* Delivery Icon */}
+            <div className="relative">
+              <Link
+                to="/delivery"
+                className="flex items-center justify-center hover:bg-green-700 rounded-full w-10 h-10 transition-all duration-200"
+                title="Delivery Requests"
+              >
+                <FiTruck className="text-2xl cursor-pointer" />
               </Link>
             </div>
 

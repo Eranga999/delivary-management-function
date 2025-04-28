@@ -28,6 +28,8 @@ import PerformanceReport from "./components/PerformanceReport";
 import PurchaseOrder from "./components/PurchaseOrder";
 import RestockAlerts from "./components/RestockAlerts";
 
+
+import DeliveryPage from './pages/DeliveryPage';
 const App = () => {
   return (
     <AuthProvider>
@@ -41,6 +43,7 @@ const App = () => {
           <Route path="/products" element={<Products />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/delivery" element={<DeliveryPage />} />
           <Route
             path="/orders"
             element={<PrivateRoute element={<Orders />} />}
@@ -84,6 +87,15 @@ const App = () => {
             path="/cashier/update-order-status"
             element={<PrivateRoute element={<UpdateOrderStatus />} />}
           />
+
+
+
+
+
+
+          {/* Caetch-all Rout */}
+
+
         </Routes>
       </CartProvider>
     </AuthProvider>
