@@ -31,6 +31,8 @@ import CreateDeliverySchedule from './components/delivary manager/CreateDelivery
 import DeliverySchedules from './components/delivary manager/DeliverySchedules';
 import EditDeliverySchedule from './components/delivary manager/EditDeliverySchedule';
 
+
+import DeliveryPage from './pages/DeliveryPage';
 const App = () => {
   return (
     <AuthProvider>
@@ -44,6 +46,7 @@ const App = () => {
           <Route path="/products" element={<Products />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/delivery" element={<DeliveryPage />} />
           <Route
             path="/orders"
             element={<PrivateRoute element={<Orders />} />}
@@ -100,6 +103,15 @@ const App = () => {
             path="/cashier/update-order-status"
             element={<PrivateRoute element={<UpdateOrderStatus />} />}
           />
+
+
+
+
+
+
+          {/* Caetch-all Rout */}
+
+
         </Routes>
       </CartProvider>
     </AuthProvider>

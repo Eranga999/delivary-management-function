@@ -22,9 +22,10 @@ try {
 const chartColors = {
   pending: '#FF6B6B', // Coral
   processing: '#4ECDC4', // Teal
-  shipped: '#45B7D1', // Sky blue
+  'on-the-way': '#45B7D1', // Sky blue
   delivered: '#96CEB4', // Mint green
   cancelled: '#FFEEAD', // Light yellow
+  refunded: '#FF9F40', // Orange
 };
 
 // @desc    Checkout and place an order
@@ -108,11 +109,11 @@ export const checkout = async (req, res) => {
 
     await order.save({ session });
 
-     if (order.paymentMethod === "in-store-payment") {
-       await sendMail({
-         to: email,
-         subject: "🎉 Your Order Confirmation - SuperMart",
-         html: `
+    if (order.paymentMethod === "in-store-payment") {
+      await sendMail({
+        to: email,
+        subject: "🎉 Your Order Confirmation - SuperMart",
+        html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #2e86de;">Thank you for your order, ${fullName}!</h2>
           <p>We’ve received your order and are preparing it for shipment.</p>
@@ -133,43 +134,55 @@ export const checkout = async (req, res) => {
               <td style="padding: 10px;">Shipping Address:</td>
               <td style="padding: 10px;">${shippingAddress}</td>
             </tr>
+            <tr style="background-color: #f6f6f6;">
+              <td style="padding: 10px;">Items:</td>
+              <td style="padding: 10px;">
+                ${orderItems.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
+              </td>
+            </tr>
           </table>
-          <p style="margin-top: 20px;">We'll notify you once it’s shipped. If you have questions, just reply to this email.</p>
+          <p style="margin-top: 20px;">We'll notify you once it’s on the way. If you have questions, just reply to this email.</p>
           <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
         </div>
       `,
-       });
+      });
 
-       await sendMail({
-         to: process.env.ADMIN_EMAIL,
-         subject: "🛒 New Order Received - SuperMart",
-         html: `
+      await sendMail({
+        to: process.env.ADMIN_EMAIL,
+        subject: "🛒 New Order Received - SuperMart",
+        html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
           <h2 style="color: #e67e22;">📦 New Order Placed</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
             <tr style="background-color: #f9f9f9;">
-              <td style="padding: 10px;">Customer:</td>
-              <td style="padding: 10px;"><strong>${fullName}</strong> (${email})</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">Customer:</td>
+              <td style="padding: 10px; border: 1px solid #ddd;"><strong>${fullName}</strong> (${email})</td>
             </tr>
             <tr>
-              <td style="padding: 10px;">Order ID:</td>
-              <td style="padding: 10px;">${order._id}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">Order ID:</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">${order._id}</td>
             </tr>
             <tr style="background-color: #f9f9f9;">
-              <td style="padding: 10px;">Payment Method:</td>
-              <td style="padding: 10px;">${paymentMethod.replace("-", " ")}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">Payment Method:</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">${paymentMethod.replace("-", " ")}</td>
             </tr>
             <tr>
-              <td style="padding: 10px;">Total Amount:</td>
-              <td style="padding: 10px;"><strong>$${totalPrice}</strong></td>
+              <td style="padding: 10px; border: 1px solid #ddd;">Total Amount:</td>
+              <td style="padding: 10px; border: 1px solid #ddd;"><strong>$${totalPrice}</strong></td>
+            </tr>
+            <tr style="background-color: #f9f9f9;">
+              <td style="padding: 10px; border: 1px solid #ddd;">Items:</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">
+                ${orderItems.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
+              </td>
             </tr>
           </table>
           <p style="margin-top: 20px;">Check the dashboard for more order details.</p>
           <p style="color: #aaa; font-size: 12px; margin-top: 40px;">SuperMart Order Notification</p>
         </div>
       `,
-       });
-     }
+      });
+    }
 
     cart.items = [];
     await cart.save({ session });
@@ -296,7 +309,6 @@ export const cancelOrder = async (req, res) => {
   }
 };
 
-
 // @desc    Update order status (for cashier)
 // @access  Private
 export const updateOrderStatus = async (req, res) => {
@@ -305,7 +317,7 @@ export const updateOrderStatus = async (req, res) => {
     const { status } = req.body;
 
     // Validate status
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'on-the-way', 'delivered', 'cancelled', 'refunded'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -323,13 +335,81 @@ export const updateOrderStatus = async (req, res) => {
     order.status = status;
     await order.save();
 
+    // Send email notification to customer on status update
+    if (status === 'on-the-way') {
+      await sendMail({
+        to: order.billingInfo.email,
+        subject: "🚚 Your Order is On the Way - SuperMart",
+        html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #2e86de;">Your Order is On the Way, ${order.billingInfo.fullName}!</h2>
+          <p>We’re happy to let you know that your order is on its way to you.</p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <tr style="background-color: #f6f6f6;">
+              <td style="padding: 10px;">Order ID:</td>
+              <td style="padding: 10px;"><strong>${order._id}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 10px;">Shipping Address:</td>
+              <td style="padding: 10px;">${order.shippingAddress}</td>
+            </tr>
+            <tr style="background-color: #f6f6f6;">
+              <td style="padding: 10px;">Total Amount:</td>
+              <td style="padding: 10px;"><strong>$${order.totalPrice}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 10px;">Items:</td>
+              <td style="padding: 10px;">
+                ${order.items.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
+              </td>
+            </tr>
+          </table>
+          <p style="margin-top: 20px;">Track your order in the delivery section of our app. If you have questions, reply to this email.</p>
+          <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
+        </div>
+      `,
+      });
+    } else if (status === 'delivered') {
+      await sendMail({
+        to: order.billingInfo.email,
+        subject: "🎉 Your Order Has Been Delivered - SuperMart",
+        html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #2e86de;">Order Delivered, ${order.billingInfo.fullName}!</h2>
+          <p>Your order has been successfully delivered. We hope you’re satisfied!</p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <tr style="background-color: #f6f6f6;">
+              <td style="padding: 10px;">Order ID:</td>
+              <td style="padding: 10px;"><strong>${order._id}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 10px;">Shipping Address:</td>
+              <td style="padding: 10px;">${order.shippingAddress}</td>
+            </tr>
+            <tr style="background-color: #f6f6f6;">
+              <td style="padding: 10px;">Total Amount:</td>
+              <td style="padding: 10px;"><strong>$${order.totalPrice}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 10px;">Items:</td>
+              <td style="padding: 10px;">
+                ${order.items.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
+              </td>
+            </tr>
+          </table>
+          <p style="margin-top: 20px;">If you have any issues, you can request a return or refund in the delivery section. Thank you for shopping with us!</p>
+          <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
+        </div>
+      `,
+      });
+    }
+
     res.json({ message: 'Order status updated successfully', order });
   } catch (error) {
     console.error('Error updating order status:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
 
 // @desc    Generate order report by status with date and status filters
 // @route   GET /api/orders/report
@@ -366,7 +446,7 @@ export const generateOrderReport = async (req, res) => {
 
     // Group orders by status if no specific status filter is applied
     const statusGroups = {};
-    const statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const statuses = ['pending', 'processing', 'on-the-way', 'delivered', 'cancelled', 'refunded'];
 
     statuses.forEach((s) => {
       statusGroups[s] = orders.filter((order) => order.status === s);
@@ -374,7 +454,10 @@ export const generateOrderReport = async (req, res) => {
 
     // Prepare data for the chart
     const chartData = {
-      labels: statuses.map((s) => s.charAt(0).toUpperCase() + s.slice(1)),
+      labels: statuses.map((s) => {
+        if (s === 'on-the-way') return 'On the Way';
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      }),
       datasets: [
         {
           label: 'Number of Orders',
@@ -382,9 +465,10 @@ export const generateOrderReport = async (req, res) => {
           backgroundColor: [
             'rgba(255, 206, 86, 0.6)',  // Yellow for pending
             'rgba(54, 162, 235, 0.6)',  // Blue for processing
-            'rgba(153, 102, 255, 0.6)', // Purple for shipped
+            'rgba(153, 102, 255, 0.6)', // Purple for on-the-way
             'rgba(75, 192, 192, 0.6)',  // Green for delivered
             'rgba(255, 99, 132, 0.6)',  // Red for cancelled
+            'rgba(255, 159, 64, 0.6)',  // Orange for refunded
           ],
           borderColor: [
             'rgba(255, 206, 86, 1)',
@@ -392,6 +476,7 @@ export const generateOrderReport = async (req, res) => {
             'rgba(153, 102, 255, 1)',
             'rgba(75, 192, 192, 1)',
             'rgba(255, 99, 132, 1)',
+            'rgba(255, 159, 64, 1)',
           ],
           borderWidth: 1,
         },
@@ -455,4 +540,19 @@ export const getAllOrders = async (req, res) => {
   }
 };
 
+// @desc    Get user's paid orders for delivery tracking
+// @access  Private
+export const getPaidOrdersForDelivery = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const orders = await Order.find({
+      user: userId,
+      status: { $in: ['processing', 'on-the-way', 'delivered'] }
+    }).populate('items.product');
 
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching paid orders for delivery:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
