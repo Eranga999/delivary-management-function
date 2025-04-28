@@ -1,5 +1,10 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Middleware to verify JWT token
 export const protect = async (req, res, next) => {
@@ -11,7 +16,7 @@ export const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
       
       // Get user from the token (exclude password)
       req.user = await User.findById(decoded.id).select('-password');

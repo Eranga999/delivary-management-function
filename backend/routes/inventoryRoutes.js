@@ -2,6 +2,7 @@ import express from 'express';
 import Product from '../models/productModel.js';
 import StockHistory from '../models/stockHistoryModel.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { insertInventory } from "../controllers/inventoryController.js";
 
 const router = express.Router();
 
@@ -251,5 +252,117 @@ router.get('/history', protect, async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 });
+
+router.get("/expiring-alerts", async (req, res) => {
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  // Normalize time to compare only dates
+  const startOfTomorrow = new Date(tomorrow.setHours(0, 0, 0, 0));
+  const endOfTomorrow = new Date(tomorrow.setHours(23, 59, 59, 999));
+
+  try {
+    const expiringTomorrow = await Product.find({
+      expiryDate: { $gte: startOfTomorrow, $lte: endOfTomorrow },
+    });
+
+    const alreadyExpired = await Product.find({
+      expiryDate: { $lt: today },
+    });
+
+    res.status(200).json({
+      expiringTomorrow,
+      alreadyExpired,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch expiry alerts" });
+  }
+});
+
+router.get("/sales/trends", async (req, res) => {
+  try {
+    const trends = await StockHistory.aggregate([
+      {
+        $match: { changeType: "remove" },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          totalSold: { $sum: "$quantity" },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 },
+      },
+    ]);
+
+    res.json(trends);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error fetching sales trends", error: err.message });
+  }
+});
+
+router.get("/sales/trends/products", async (req, res) => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const trends = await StockHistory.aggregate([
+      {
+        $match: {
+          changeType: "remove",
+          createdAt: { $gte: sevenDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            product: "$product",
+            date: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+            },
+          },
+          totalSold: { $sum: "$quantity" },
+        },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "_id.product",
+          foreignField: "_id",
+          as: "productDetails",
+        },
+      },
+      { $unwind: "$productDetails" },
+      {
+        $project: {
+          productName: "$productDetails.name",
+          productPrice: "$productDetails.price",
+          date: "$_id.date",
+          totalSold: 1,
+        },
+      },
+      {
+        $sort: { totalSold: -1 }, // Sort from most sold to least
+      },
+    ]);
+
+    res.json(trends);
+  } catch (err) {
+    res.status(500).json({
+      message: "Error fetching most sold products in last 7 days",
+      error: err.message,
+    });
+  }
+});
+
+router.post("/", insertInventory);
+
 
 export default router;

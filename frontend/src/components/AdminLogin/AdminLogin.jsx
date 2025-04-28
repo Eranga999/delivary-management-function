@@ -23,6 +23,8 @@ const AdminLogin = () => {
         navigate('/storekeeper');
       } else if (user.email === 'useradmin@example.com') {
         navigate('/admin');
+      } else if (user.role === 'admin') {
+        navigate('/');
       } else {
         // If a non-admin user tries to login through admin form
         enqueueSnackbar('Access denied: Admin privileges required', { variant: 'error' });
@@ -47,7 +49,7 @@ const AdminLogin = () => {
       } else if (result.data.email === 'storekeeper@example.com') {
         enqueueSnackbar('Storekeeper login successful!', { variant: 'success' });
         navigate('/storekeeper');
-      } else if (result.data.email === 'useradmin@example.com') {
+      } else if (result.data.role === 'admin') {
         enqueueSnackbar('Admin login successful!', { variant: 'success' });
         navigate('/admin');
       } else {

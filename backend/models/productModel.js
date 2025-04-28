@@ -1,69 +1,69 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     category: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     description: {
       type: String,
-      trim: true
+      trim: true,
     },
     price: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
     },
     currentStock: {
       type: Number,
       required: true,
       min: 0,
-      default: 0
+      default: 0,
     },
     minStock: {
       type: Number,
       required: true,
       min: 0,
-      default: 5
+      default: 5,
     },
     unit: {
       type: String,
       required: true,
-      default: 'item' // e.g., item, kg, liter, etc.
+      default: "item", // e.g., item, kg, liter, etc.
     },
     barcode: {
       type: String,
-      trim: true
+      trim: true,
     },
     image: {
       type: String,
-      default: 'https://via.placeholder.com/150'
+      default: "https://via.placeholder.com/150",
     },
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
     },
     expiryDate: {
-      type: Date
-    }
+      type: Date,
+    },
   },
   { timestamps: true }
 );
 
 // Virtual to determine if stock is low
-productSchema.virtual('isLowStock').get(function() {
+productSchema.virtual("isLowStock").get(function () {
   return this.currentStock <= this.minStock;
 });
 
 // Virtual to calculate days until expiry
-productSchema.virtual('daysUntilExpiry').get(function() {
+productSchema.virtual("daysUntilExpiry").get(function () {
   if (!this.expiryDate) return null;
   const today = new Date();
   const expiryDate = new Date(this.expiryDate);
@@ -73,8 +73,8 @@ productSchema.virtual('daysUntilExpiry').get(function() {
 });
 
 // Include virtuals when converting to JSON
-productSchema.set('toJSON', { virtuals: true });
-productSchema.set('toObject', { virtuals: true });
+productSchema.set("toJSON", { virtuals: true });
+productSchema.set("toObject", { virtuals: true });
 
-const Product = mongoose.model('Product', productSchema);
+const Product = mongoose.model("Product", productSchema);
 export default Product;

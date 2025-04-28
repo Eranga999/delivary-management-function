@@ -1,133 +1,180 @@
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
-import { Navigate } from 'react-router-dom';
-import Header from '../components/home/Header';
+import { useContext, useEffect, useState } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
+import axios from "axios";
+import Header from "../components/home/Header";
+import AllOrders from "../components/AllOrders/AllOrders"; // Import AllOrders
+import { FiShoppingCart, FiCreditCard } from "react-icons/fi";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5555";
 
 const CashierDashboard = () => {
   const { user } = useContext(AuthContext);
-  
-  // Only allow cashier@example.com to access this page
-  if (!user || user.email !== 'cashier@example.com') {
+  const [transactions, setTransactions] = useState([]);
+  const [activeTab, setActiveTab] = useState("transactions");
+
+  // Redirect non-cashier users
+  if (!user || user.email !== "cashier@example.com") {
     return <Navigate to="/" />;
   }
-  
+
+  // Fetch transactions on mount
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/transactions`);
+        setTransactions(response.data);
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
+  // Refund handler
+  const handleRefund = async (id) => {
+    try {
+      await axios.patch(`${API_BASE_URL}/api/transactions/${id}/refund`);
+      setTransactions((prev) =>
+        prev.map((trx) =>
+          trx._id === id ? { ...trx, status: "Refunded" } : trx
+        )
+      );
+    } catch (error) {
+      console.error("Refund failed:", error);
+      alert("Failed to refund transaction");
+    }
+  };
+
+  // Render content based on selected tab
+  const renderDashboardContent = () => {
+    if (activeTab === "transactions") {
+      return (
+        <>
+
+          {/* Recent Transactions */}
+          <h3 className="text-xl font-semibold mb-4">Recent Transactions</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Transaction ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {transactions.length > 0 ? (
+                  transactions.map((trx) => (
+                    <tr key={trx._id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {trx._id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {trx.orderId && trx.orderId.billingInfo
+                          ? trx.orderId.billingInfo.fullName
+                          : "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        Rs.{trx.amount.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(trx.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            trx.status === "Completed"
+                              ? "bg-green-100 text-green-800"
+                              : trx.status === "Refunded"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {trx.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                          onClick={() => handleRefund(trx._id)}
+                          disabled={trx.status === "Refunded"}
+                        >
+                          Refund
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
+                      No transactions found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      );
+    } else if (activeTab === "all-orders") {
+      return <AllOrders />;
+    }
+  };
+
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
       <Header searchTerm="" setSearchTerm={() => {}} cartCount={0} />
-      
+
       <div className="max-w-6xl mx-auto mt-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold mb-6">Cashier Dashboard</h2>
-          
-          {/* Cashier-specific content */}
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <i className="fas fa-info-circle text-blue-500"></i>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-blue-700">
-                  Welcome to the Cashier Portal. Here you can manage customer transactions and payments.
-                </p>
-              </div>
-            </div>
+
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 mb-6 overflow-x-auto pb-1">
+            <button
+              onClick={() => setActiveTab("transactions")}
+              className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === "transactions"
+                  ? "text-yellow-600 border-b-2 border-yellow-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <FiCreditCard className="inline mr-1" /> Transactions
+            </button>
+            <button
+              onClick={() => setActiveTab("all-orders")}
+              className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === "all-orders"
+                  ? "text-yellow-600 border-b-2 border-yellow-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <FiShoppingCart className="inline mr-1" /> All Orders
+            </button>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Quick actions */}
-            <div className="bg-white p-4 rounded-lg border shadow">
-              <h3 className="font-semibold text-lg mb-2">New Transaction</h3>
-              <p className="text-gray-600 mb-4">Start a new customer checkout process</p>
-              <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                Start Checkout
-              </button>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border shadow">
-              <h3 className="font-semibold text-lg mb-2">Process Returns</h3>
-              <p className="text-gray-600 mb-4">Handle customer returns and refunds</p>
-              <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                Process Return
-              </button>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border shadow">
-              <h3 className="font-semibold text-lg mb-2">Daily Summary</h3>
-              <p className="text-gray-600 mb-4">View your transaction history for today</p>
-              <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                View Summary
-              </button>
-            </div>
-          </div>
-          
-          {/* Recent transactions section */}
-          <div className="mt-8">
-            <h3 className="text-xl font-semibold mb-4">Recent Transactions</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Transaction ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {/* Sample data - would be fetched from API in real application */}
-                  <tr>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">TRX-12345</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">John Doe</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">$124.00</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date().toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Completed
-                      </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">TRX-12344</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">Jane Smith</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">$75.50</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date().toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Completed
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+
+          {/* Render dynamic content */}
+          {renderDashboardContent()}
         </div>
       </div>
     </div>
