@@ -5,16 +5,27 @@ const deliveryScheduleSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',
     required: true,
-    unique: true, // Ensure one schedule per order
   },
-  scheduledDate: {
+  driverName: {
+    type: String,
+    required: true,
+  },
+  scheduledTime: {
     type: Date,
     required: true,
   },
-  status: {
+  deliveryStatus: {
     type: String,
-    enum: ['scheduled', 'in-progress', 'completed', 'cancelled'],
-    default: 'scheduled',
+    enum: ['Pending', 'In Progress', 'Delivered', 'Cancelled'],
+    default: 'Pending',
+  },
+  customerName: {
+    type: String,
+    required: true,
+  },
+  customerAddress: {
+    type: String,
+    required: true,
   },
 }, { timestamps: true });
 

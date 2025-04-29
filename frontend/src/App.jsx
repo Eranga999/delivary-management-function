@@ -30,9 +30,8 @@ import RestockAlerts from './components/RestockAlerts';
 import CreateDeliverySchedule from './components/delivary manager/CreateDeliverySchedule';
 import DeliverySchedules from './components/delivary manager/DeliverySchedules';
 import EditDeliverySchedule from './components/delivary manager/EditDeliverySchedule';
-
-
 import DeliveryPage from './pages/DeliveryPage';
+
 const App = () => {
   return (
     <AuthProvider>
@@ -70,6 +69,10 @@ const App = () => {
 
           {/* Delivery Schedule Routes */}
           <Route
+            path="/create-delivery-schedule"
+            element={<PrivateRoute element={<CreateDeliverySchedule />} />}
+          />
+          <Route
             path="/create-delivery-schedule/:orderId"
             element={<PrivateRoute element={<CreateDeliverySchedule />} />}
           />
@@ -104,14 +107,8 @@ const App = () => {
             element={<PrivateRoute element={<UpdateOrderStatus />} />}
           />
 
-
-
-
-
-
-          {/* Caetch-all Rout */}
-
-
+          {/* Catch-all Route */}
+          <Route path="*" element={<div>404 - Page Not Found</div>} />
         </Routes>
       </CartProvider>
     </AuthProvider>
