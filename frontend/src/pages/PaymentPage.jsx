@@ -28,12 +28,13 @@ const PaymentPage = () => {
           headers: { Authorization: `Bearer ${user.token}` },
         };
         const res = await axios.get(
-          `${API_BASE_URL}/api/orders/order/${orderId}`,
+          `${API_BASE_URL}/api/orders/${orderId}`,
           config
         );
         console.log(res.data);
         setAmount(res.data.totalPrice);
-      } catch {
+      } catch (error) {
+        console.error('Error fetching order:', error);
         enqueueSnackbar("Unable to fetch order details", { variant: "error" });
         navigate("/");
       }
