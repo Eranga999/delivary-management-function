@@ -30,9 +30,9 @@ import RestockAlerts from './components/RestockAlerts';
 import CreateDeliverySchedule from './components/delivary manager/CreateDeliverySchedule';
 import DeliverySchedules from './components/delivary manager/DeliverySchedules';
 import EditDeliverySchedule from './components/delivary manager/EditDeliverySchedule';
-
-
 import DeliveryPage from './pages/DeliveryPage';
+import RefundPage from './pages/RefundPage';
+
 const App = () => {
   return (
     <AuthProvider>
@@ -104,14 +104,10 @@ const App = () => {
             element={<PrivateRoute element={<UpdateOrderStatus />} />}
           />
 
-
-
-
-
+          {/* New Routes */}
+          <Route path="/refund" element={<RefundPage />} />
 
           {/* Caetch-all Rout */}
-
-
         </Routes>
       </CartProvider>
     </AuthProvider>
