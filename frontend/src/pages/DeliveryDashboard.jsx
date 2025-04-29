@@ -2,10 +2,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from "../context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import Header from "../components/home/Header";
-import { FiPackage, FiTruck, FiMap, FiCalendar, FiUsers, FiClipboard, FiRefreshCw, FiCheck, FiX, FiAlertCircle } from "react-icons/fi";
+import { FiPackage, FiTruck, FiMap, FiCalendar, FiUsers, FiClipboard, FiRefreshCw, FiCheck, FiX, FiAlertCircle, FiSearch } from "react-icons/fi";
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import Spinner from '../components/Spinner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable'; // Explicit import of autoTable
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5555';
 
@@ -14,13 +16,13 @@ const DeliveryDashboard = () => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('all');
   const [orders, setOrders] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [drivers, setDrivers] = useState([
     { id: 1, name: "John Doe", available: true, contact: "123-456-7890" },
     { id: 2, name: "Jane Smith", available: true, contact: "123-456-7891" },
     { id: 3, name: "Mike Johnson", available: true, contact: "123-456-7892" },
-    // Add more drivers as needed
   ]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -34,7 +36,6 @@ const DeliveryDashboard = () => {
     totalDrivers: 0,
   });
 
-  // Only allow storekeeper@example.com to access this page
   if (!user || user.email !== "storekeeper@example.com") {
     return <Navigate to="/" />;
   }
@@ -50,21 +51,19 @@ const DeliveryDashboard = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       };
 
-      // Fetch all orders
       const ordersResponse = await axios.get(`${API_BASE_URL}/api/orders/all`, config);
       const allOrders = ordersResponse.data;
 
-      // Filter orders that need delivery (paid orders)
-      const deliveryOrders = allOrders.filter(order => 
-        order.paymentMethod === 'online-payment' || 
+      const deliveryOrders = allOrders.filter(order =>
+        order.paymentMethod === 'online-payment' ||
         order.status === 'processing' ||
         order.status === 'shipped' ||
+        order.status === 'delivered' ||
         order.status === 'cancelled'
       );
 
       setOrders(deliveryOrders);
 
-      // Calculate statistics
       const stats = {
         pendingDeliveries: deliveryOrders.filter(o => o.status === 'processing').length,
         inTransit: deliveryOrders.filter(o => o.status === 'shipped').length,
@@ -82,13 +81,20 @@ const DeliveryDashboard = () => {
     }
   };
 
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = searchTerm
+      ? order.billingInfo.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+      : true;
+    const matchesTab = activeTab === 'all' ? true : order.status === activeTab;
+    return matchesSearch && matchesTab;
+  });
+
   const handleAssignDriver = async (orderId, driverId) => {
     try {
       const config = {
         headers: { Authorization: `Bearer ${user.token}` },
       };
 
-      // Create delivery schedule
       const scheduleData = {
         orderId,
         driverName: drivers.find(d => d.id === driverId).name,
@@ -100,7 +106,6 @@ const DeliveryDashboard = () => {
 
       await axios.post(`${API_BASE_URL}/api/delivery-schedules`, scheduleData, config);
 
-      // Update order status
       await axios.put(
         `${API_BASE_URL}/api/orders/${orderId}/status`,
         { status: 'shipped' },
@@ -122,7 +127,6 @@ const DeliveryDashboard = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       };
 
-      // Update order status
       await axios.put(
         `${API_BASE_URL}/api/orders/${orderId}/status`,
         { status: newStatus },
@@ -138,10 +142,6 @@ const DeliveryDashboard = () => {
     }
   };
 
-  const filteredOrders = activeTab === 'all' 
-    ? orders 
-    : orders.filter(order => order.status === activeTab);
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'processing': return 'bg-yellow-100 text-yellow-800';
@@ -150,6 +150,99 @@ const DeliveryDashboard = () => {
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const generateReport = () => {
+    if (filteredOrders.length === 0) {
+      enqueueSnackbar('No orders found for the selected customer', { variant: 'info' });
+      return;
+    }
+
+    const statusCounts = {
+      processing: filteredOrders.filter(o => o.status === 'processing').length,
+      shipped: filteredOrders.filter(o => o.status === 'shipped').length,
+      delivered: filteredOrders.filter(o => o.status === 'delivered').length,
+      cancelled: filteredOrders.filter(o => o.status === 'cancelled').length,
+    };
+
+    const totalOrders = filteredOrders.length;
+    const totalValue = filteredOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+
+    // Initialize jsPDF
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 10;
+    let yOffset = 20;
+
+    // Add Title
+    doc.setFontSize(18);
+    doc.text('Delivery Report', margin, yOffset);
+    yOffset += 10;
+
+    // Add Summary
+    doc.setFontSize(12);
+    doc.text(`Customer: ${searchTerm || 'All Customers'}`, margin, yOffset);
+    yOffset += 6;
+    doc.text(`Total Orders: ${totalOrders}`, margin, yOffset);
+    yOffset += 6;
+    doc.text(`Total Value: Rs.${totalValue.toFixed(2)}`, margin, yOffset);
+    yOffset += 10;
+
+    // Add Status Distribution
+    doc.setFontSize(14);
+    doc.text('Status Distribution', margin, yOffset);
+    yOffset += 8;
+    doc.setFontSize(12);
+    doc.text(`Processing: ${statusCounts.processing}`, margin, yOffset);
+    yOffset += 6;
+    doc.text(`Shipped: ${statusCounts.shipped}`, margin, yOffset);
+    yOffset += 6;
+    doc.text(`Delivered: ${statusCounts.delivered}`, margin, yOffset);
+    yOffset += 6;
+    doc.text(`Cancelled: ${statusCounts.cancelled}`, margin, yOffset);
+    yOffset += 10;
+
+    // Add Orders Table using autoTable
+    doc.setFontSize(14);
+    doc.text('Order Details', margin, yOffset);
+    yOffset += 8;
+
+    const tableData = filteredOrders.map(order => [
+      order._id,
+      order.billingInfo.fullName,
+      order.shippingAddress,
+      order.status.charAt(0).toUpperCase() + order.status.slice(1),
+      `Rs.${order.totalPrice.toFixed(2)}`,
+      order.items.map(item => `${item.product.name} (x${item.quantity})`).join(', '),
+    ]);
+
+    // Use autoTable explicitly
+    autoTable(doc, {
+      startY: yOffset,
+      head: [['Order ID', 'Customer', 'Address', 'Status', 'Total', 'Items']],
+      body: tableData,
+      theme: 'grid',
+      styles: { fontSize: 10, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 50 },
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    // Save the PDF
+    const fileName = `delivery_report_${searchTerm || 'all'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+
+    // Show success message
+    enqueueSnackbar(
+      `PDF Report Generated: ${totalOrders} orders for "${searchTerm || 'All Customers'}"`,
+      { variant: 'success' }
+    );
   };
 
   if (loading) {
@@ -162,24 +255,42 @@ const DeliveryDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header searchTerm="" setSearchTerm={() => {}} cartCount={0} />
-      
+      <Header searchTerm={searchTerm} setSearchTerm={setSearchTerm} cartCount={0} />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Delivery Management</h1>
             <p className="mt-2 text-gray-600">Manage orders and assign drivers</p>
           </div>
-          <button
-            onClick={fetchOrders}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-          >
-            <FiRefreshCw className="text-lg" />
-            Refresh Data
-          </button>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by customer name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-600"
+              />
+              <FiSearch className="absolute left-3 top-3 text-gray-400" />
+            </div>
+            <button
+              onClick={generateReport}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <FiClipboard className="text-lg" />
+              Generate Report
+            </button>
+            <button
+              onClick={fetchOrders}
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+            >
+              <FiRefreshCw className="text-lg" />
+              Refresh Data
+            </button>
+          </div>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
@@ -192,7 +303,6 @@ const DeliveryDashboard = () => {
               </div>
             </div>
           </div>
-          
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-blue-100 text-blue-600">
@@ -204,7 +314,6 @@ const DeliveryDashboard = () => {
               </div>
             </div>
           </div>
-          
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-green-100 text-green-600">
@@ -216,7 +325,6 @@ const DeliveryDashboard = () => {
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-red-100 text-red-600">
@@ -228,7 +336,6 @@ const DeliveryDashboard = () => {
               </div>
             </div>
           </div>
-          
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-purple-100 text-purple-600">
@@ -242,7 +349,6 @@ const DeliveryDashboard = () => {
           </div>
         </div>
 
-        {/* Order Status Tabs */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex space-x-4 mb-6">
             {['all', 'processing', 'shipped', 'delivered', 'cancelled'].map((tab) => (
@@ -260,7 +366,6 @@ const DeliveryDashboard = () => {
             ))}
           </div>
 
-          {/* Orders Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -338,7 +443,6 @@ const DeliveryDashboard = () => {
         </div>
       </div>
 
-      {/* Assign Driver Modal */}
       {showAssignModal && selectedOrder && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
           <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
@@ -371,7 +475,6 @@ const DeliveryDashboard = () => {
         </div>
       )}
 
-      {/* Order Details Modal */}
       {showDetailsModal && selectedOrder && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
           <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full">
@@ -389,7 +492,7 @@ const DeliveryDashboard = () => {
                 <p className="font-semibold">Order Information</p>
                 <p>Order ID: {selectedOrder._id}</p>
                 <p>Status: <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(selectedOrder.status)}`}>
-                  {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                  {selectedOrder.status.charAt(0).toUpperCase() + order.status.slice(1)}
                 </span></p>
                 <p>Total: Rs.{selectedOrder.totalPrice.toFixed(2)}</p>
                 <p>Payment Method: {selectedOrder.paymentMethod}</p>
@@ -424,7 +527,6 @@ const DeliveryDashboard = () => {
         </div>
       )}
 
-      {/* Status Update Modal */}
       {showStatusModal && selectedOrder && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
           <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
@@ -473,4 +575,4 @@ const DeliveryDashboard = () => {
   );
 };
 
-export default DeliveryDashboard; 
+export default DeliveryDashboard;
