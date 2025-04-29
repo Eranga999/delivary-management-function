@@ -25,6 +25,7 @@ const DeliveryDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
   const [deliveryStats, setDeliveryStats] = useState({
     pendingDeliveries: 0,
     inTransit: 0,
@@ -112,6 +113,28 @@ const DeliveryDashboard = () => {
     } catch (error) {
       console.error('Error assigning driver:', error);
       enqueueSnackbar(error.response?.data?.message || 'Failed to assign driver', { variant: 'error' });
+    }
+  };
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${user.token}` },
+      };
+
+      // Update order status
+      await axios.put(
+        `${API_BASE_URL}/api/orders/${orderId}/status`,
+        { status: newStatus },
+        config
+      );
+
+      enqueueSnackbar(`Order status updated to ${newStatus}`, { variant: 'success' });
+      setShowStatusModal(false);
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      enqueueSnackbar(error.response?.data?.message || 'Failed to update status', { variant: 'error' });
     }
   };
 
@@ -246,6 +269,7 @@ const DeliveryDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -265,17 +289,30 @@ const DeliveryDashboard = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {order.driverName || 'Not assigned'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       Rs.{order.totalPrice.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setShowStatusModal(true);
+                          }}
+                          className="text-yellow-600 hover:text-yellow-900"
+                          title="Update Status"
+                        >
+                          <FiRefreshCw className="w-5 h-5" />
+                        </button>
                         {order.status === 'processing' && (
                           <button
                             onClick={() => {
                               setSelectedOrder(order);
                               setShowAssignModal(true);
                             }}
-                            className="text-yellow-600 hover:text-yellow-900"
+                            className="text-blue-600 hover:text-blue-900"
                             title="Assign Driver"
                           >
                             <FiTruck className="w-5 h-5" />
@@ -381,6 +418,52 @@ const DeliveryDashboard = () => {
                 className="bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Update Modal */}
+      {showStatusModal && selectedOrder && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Update Order Status</h2>
+            <div className="mb-4">
+              <p><strong>Order ID:</strong> {selectedOrder._id}</p>
+              <p><strong>Customer:</strong> {selectedOrder.billingInfo.fullName}</p>
+              <p><strong>Current Status:</strong> {selectedOrder.status}</p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleStatusChange(selectedOrder._id, 'processing')}
+                className="w-full bg-yellow-100 text-yellow-800 py-2 px-4 rounded hover:bg-yellow-200"
+              >
+                Mark as Processing
+              </button>
+              <button
+                onClick={() => handleStatusChange(selectedOrder._id, 'shipped')}
+                className="w-full bg-blue-100 text-blue-800 py-2 px-4 rounded hover:bg-blue-200"
+              >
+                Mark as Shipped
+              </button>
+              <button
+                onClick={() => handleStatusChange(selectedOrder._id, 'delivered')}
+                className="w-full bg-green-100 text-green-800 py-2 px-4 rounded hover:bg-green-200"
+              >
+                Mark as Delivered
+              </button>
+              <button
+                onClick={() => handleStatusChange(selectedOrder._id, 'cancelled')}
+                className="w-full bg-red-100 text-red-800 py-2 px-4 rounded hover:bg-red-200"
+              >
+                Mark as Cancelled
+              </button>
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300 mt-4"
+              >
+                Cancel
               </button>
             </div>
           </div>
