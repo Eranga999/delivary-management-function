@@ -53,16 +53,18 @@ const Header = ({ searchTerm, setSearchTerm, cartCount }) => {
               </Link>
             </div>
 
-            {/* Delivery Icon */}
-            <div className="relative">
-              <Link
-                to="/delivery"
-                className="flex items-center justify-center hover:bg-green-700 rounded-full w-10 h-10 transition-all duration-200"
-                title="Delivery Requests"
-              >
-                <FiTruck className="text-2xl cursor-pointer" />
-              </Link>
-            </div>
+            {/* Delivery Icon - Only show for customers */}
+            {user && user.role === "customer" && (
+              <div className="relative">
+                <Link
+                  to="/delivery"
+                  className="flex items-center justify-center hover:bg-green-700 rounded-full w-10 h-10 transition-all duration-200"
+                  title="Delivery Requests"
+                >
+                  <FiTruck className="text-2xl cursor-pointer" />
+                </Link>
+              </div>
+            )}
 
             {/* Admin Login Icon */}
             <Link
@@ -121,7 +123,6 @@ const Header = ({ searchTerm, setSearchTerm, cartCount }) => {
                       )
                     }
                     
-
                     {user.role === "admin" && (
                       <Link
                         to="/admin"

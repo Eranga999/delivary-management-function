@@ -31,6 +31,7 @@ import CreateDeliverySchedule from './components/delivary manager/CreateDelivery
 import DeliverySchedules from './components/delivary manager/DeliverySchedules';
 import EditDeliverySchedule from './components/delivary manager/EditDeliverySchedule';
 import DeliveryPage from './pages/DeliveryPage';
+import RefundPage from './pages/RefundPage';
 
 const App = () => {
   return (
@@ -107,8 +108,10 @@ const App = () => {
             element={<PrivateRoute element={<UpdateOrderStatus />} />}
           />
 
-          {/* Catch-all Route */}
-          <Route path="*" element={<div>404 - Page Not Found</div>} />
+          {/* New Routes */}
+          <Route path="/refund" element={<RefundPage />} />
+
+          {/* Caetch-all Rout */}
         </Routes>
       </CartProvider>
     </AuthProvider>
