@@ -33,6 +33,7 @@ import {
   FiCalendar,
   FiFileText,
   FiShoppingCart,
+  FiTruck,
 } from "react-icons/fi";
 import jsPDF from "jspdf";
 
@@ -1230,7 +1231,7 @@ const StorekeeperDashboard = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-red-600">
+                          <div className="text-sm text-gray-900">
                             {product.currentStock} {product.unit}(s)
                           </div>
                         </td>
@@ -1704,6 +1705,17 @@ const StorekeeperDashboard = () => {
           </div>
         </div>
       );
+    } else if (activeTab === "delivery") {
+      return (
+        <div className="min-h-screen bg-gray-100 p-10">
+          <h1 className="text-4xl font-bold text-center text-green-500 mb-12">
+            Delivery Dashboard
+          </h1>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Add delivery-related buttons here */}
+          </div>
+        </div>
+      );
     }
   };
 
@@ -1874,6 +1886,16 @@ const StorekeeperDashboard = () => {
               }`}
             >
               <FiShoppingCart className="inline mr-1" /> Supplier
+            </button>
+            <button
+              onClick={() => navigate('/delivery-dashboard')}
+              className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === "delivery"
+                  ? "text-yellow-600 border-b-2 border-yellow-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <FiTruck className="inline mr-1" /> Delivery Dashboard
             </button>
           </div>
 

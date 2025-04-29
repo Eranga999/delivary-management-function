@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 import CashierDashboard from './pages/CashierDashboard';
 import StorekeeperDashboard from './pages/StorekeeperDashboard';
+import DeliveryDashboard from './pages/DeliveryDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Cart from './components/Cart/Cart';
 import CheckoutPage from './pages/CheckoutPage';
@@ -70,6 +71,10 @@ const App = () => {
 
           {/* Delivery Schedule Routes */}
           <Route
+            path="/create-delivery-schedule"
+            element={<PrivateRoute element={<CreateDeliverySchedule />} />}
+          />
+          <Route
             path="/create-delivery-schedule/:orderId"
             element={<PrivateRoute element={<CreateDeliverySchedule />} />}
           />
@@ -94,6 +99,7 @@ const App = () => {
           {/* Special Roles Routes */}
           <Route path="/cashier" element={<CashierDashboard />} />
           <Route path="/storekeeper" element={<StorekeeperDashboard />} />
+          <Route path="/delivery-dashboard" element={<DeliveryDashboard />} />
           <Route path="/add-supplier" element={<AddSupplier />} />
           <Route path="/supplier-list" element={<SupplierList />} />
           <Route path="/performance-report" element={<PerformanceReport />} />

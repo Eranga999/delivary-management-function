@@ -14,78 +14,62 @@ import {
 
 const router = express.Router();
 
-// @desc    Get user's orders
+// Customer Order Routes
+// @desc    Get user's orders with basic info
 // @route   GET /api/orders
 // @access  Private
 router.get('/', protect, getOrders);
+
+// @desc    Get user's orders with detailed info (including products)
+// @route   GET /api/orders/myorders
+// @access  Private
+router.get('/myorders', protect, async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user._id })
+      .populate('items.product')
+      .sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ message: "Error fetching orders" });
+  }
+});
+
+// @desc    Get user's paid orders for delivery tracking
+// @route   GET /api/orders/delivery
+// @access  Private
+router.get('/delivery', protect, getPaidOrdersForDelivery);
 
 // @desc    Checkout and place an order
 // @route   POST /api/orders/checkout
 // @access  Private
 router.post("/checkout", protect, checkout);
 
-// @desc    Get user's orders (duplicate route, consider removing or renaming)
-// @route   GET /api/orders
-// @access  Private
-router.get("/:id", protect, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const orders = await Order.find({ user: userId }).populate("items.product");
-    res.json(orders);
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).json({ message: "Server Error" });
-  }
-});
-
-// @desc    Generate order report
-// @route   GET /api/orders/report
-// @access  Private
-router.get("/report", protect, (req, res) => {
-  console.log("Handling /report route");
-  return generateOrderReport(req, res);
-});
-
-// @desc    Get a single order by ID (alternative route)
-// @route   GET /api/orders/order/:id
-// @access  Private
-router.get("/order/:id", protect, async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    const order = await Order.findById(orderId).populate("items.product");
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-    res.json(order);
-  } catch (error) {
-    console.error("Error fetching order:", error);
-    res.status(500).json({ message: "Server Error" });
-  }
-});
-
-// @desc    Get all orders (for storekeeper and cashier)
-// @route   GET /api/orders/all
-// @access  Private
-router.get('/all', protect, getAllOrders);
-
-// @desc    Get a single order by ID
-// @route   GET /api/orders/:id
-// @access  Private
-router.get("/:id", protect, getOrderById);
-
 // @desc    Cancel an order
 // @route   PUT /api/orders/:id/cancel
 // @access  Private
 router.put('/:id/cancel', protect, cancelOrder);
 
-// @desc    Update order status (for cashier)
+// Admin/Staff Routes
+// @desc    Get all orders (for storekeeper and cashier)
+// @route   GET /api/orders/all
+// @access  Private (Staff Only)
+router.get('/all', protect, getAllOrders);
+
+// @desc    Generate order report
+// @route   GET /api/orders/report
+// @access  Private (Staff Only)
+router.get("/report", protect, generateOrderReport);
+
+// @desc    Update order status (for cashier/storekeeper)
 // @route   PUT /api/orders/:id/status
-// @access  Private
+// @access  Private (Staff Only)
 router.put('/:id/status', protect, updateOrderStatus);
 
-// @desc    Get user's paid orders for delivery tracking
-// @route   GET /api/orders/delivery
+// General Order Routes
+// @desc    Get a single order by ID
+// @route   GET /api/orders/:id
 // @access  Private
-router.get('/delivery', protect, getPaidOrdersForDelivery);
+router.get("/:id", protect, getOrderById);
 
 export default router;
