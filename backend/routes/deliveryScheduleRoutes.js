@@ -4,9 +4,7 @@ import { createDeliverySchedule } from '../controllers/deliveryScheduleControlle
 
 const router = express.Router();
 
-// @desc    Create a delivery schedule for an_.
-
-System: order
+// @desc    Create a delivery schedule for an order
 // @route   POST /api/delivery-schedules
 // @access  Private
 router.post('/', protect, createDeliverySchedule);
