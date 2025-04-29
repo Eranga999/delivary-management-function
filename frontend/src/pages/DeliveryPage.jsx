@@ -21,7 +21,7 @@ const DeliveryPage = () => {
   const tabs = [
     { name: 'All', icon: <FiPackage className="mr-2" />, count: 0 },
     { name: 'Processing', icon: <FiClock className="mr-2" />, count: 0 },
-    { name: 'On the Way', icon: <FiTruck className="mr-2" />, count: 0 },
+    { name: 'Ongoing', icon: <FiTruck className="mr-2" />, count: 0 },
     { name: 'Delivered', icon: <FiCheckCircle className="mr-2" />, count: 0 },
     { name: 'Cancelled', icon: <FiX className="mr-2" />, count: 0 }
   ];
@@ -62,11 +62,11 @@ const DeliveryPage = () => {
       // Fetch all orders for the current user
       const response = await axios.get(`${API_BASE_URL}/api/orders/myorders`, config);
       
-      // Filter only orders that have been paid and are in delivery process
+      // Filter orders that need delivery (paid orders)
       const validDeliveries = response.data.filter(order => 
         order.paymentMethod === 'online-payment' || 
         order.status === 'processing' ||
-        order.status === 'shipped' ||
+        order.status === 'ongoing' ||
         order.status === 'delivered' ||
         order.status === 'cancelled'
       );
@@ -77,8 +77,6 @@ const DeliveryPage = () => {
       tabs.forEach(tab => {
         if (tab.name === 'All') {
           tab.count = validDeliveries.length;
-        } else if (tab.name === 'On the Way') {
-          tab.count = validDeliveries.filter(d => d.status === 'shipped').length;
         } else {
           tab.count = validDeliveries.filter(d => 
             d.status.toLowerCase() === tab.name.toLowerCase()
@@ -146,19 +144,24 @@ const DeliveryPage = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'processing': return 'bg-yellow-100 text-yellow-800';
-      case 'shipped': return 'bg-blue-100 text-blue-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+    switch (status.toLowerCase()) {
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'ongoing':
+        return 'bg-blue-100 text-blue-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getProgress = (status) => {
     switch (status) {
       case 'processing': return 33;
-      case 'shipped': return 66;
+      case 'ongoing': return 66;
       case 'delivered': return 100;
       case 'cancelled': return 0;
       default: return 0;
@@ -166,16 +169,14 @@ const DeliveryPage = () => {
   };
 
   const displayStatus = (status) => {
-    if (status === 'shipped') return 'On the Way';
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   const filteredDeliveries = activeTab === 'All'
     ? deliveries
-    : deliveries.filter(delivery => {
-        if (activeTab === 'On the Way') return delivery.status === 'shipped';
-        return delivery.status.toLowerCase() === activeTab.toLowerCase();
-      });
+    : deliveries.filter(delivery => 
+        delivery.status.toLowerCase() === activeTab.toLowerCase()
+    );
 
   return (
     <div className="bg-gray-100 min-h-screen p-6">
@@ -325,7 +326,7 @@ const DeliveryPage = () => {
                   <div className="flex justify-between text-sm text-gray-600 mb-1">
                     <span>Order Placed</span>
                     <span>Processing</span>
-                    <span>On the Way</span>
+                    <span>Ongoing</span>
                     <span>Delivered</span>
                   </div>
                   <div className="relative w-full h-2 bg-gray-200 rounded-full">

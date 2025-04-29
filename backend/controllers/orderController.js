@@ -20,12 +20,10 @@ try {
 
 // Chart colors
 const chartColors = {
-  pending: '#FF6B6B', // Coral
   processing: '#4ECDC4', // Teal
-  'on-the-way': '#45B7D1', // Sky blue
+  ongoing: '#45B7D1', // Sky blue
   delivered: '#96CEB4', // Mint green
   cancelled: '#FFEEAD', // Light yellow
-  refunded: '#FF9F40', // Orange
 };
 
 // @desc    Checkout and place an order
@@ -116,7 +114,7 @@ export const checkout = async (req, res) => {
         html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #2e86de;">Thank you for your order, ${fullName}!</h2>
-          <p>We’ve received your order and are preparing it for shipment.</p>
+          <p>We've received your order and are preparing it for shipment.</p>
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr style="background-color: #f6f6f6;">
               <td style="padding: 10px;">Order ID:</td>
@@ -141,7 +139,7 @@ export const checkout = async (req, res) => {
               </td>
             </tr>
           </table>
-          <p style="margin-top: 20px;">We'll notify you once it’s on the way. If you have questions, just reply to this email.</p>
+          <p style="margin-top: 20px;">We'll notify you once it's on the way. If you have questions, just reply to this email.</p>
           <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
         </div>
       `,
@@ -317,7 +315,7 @@ export const updateOrderStatus = async (req, res) => {
     const { status } = req.body;
 
     // Validate status
-    const validStatuses = ['pending', 'processing', 'on-the-way', 'delivered', 'cancelled', 'refunded'];
+    const validStatuses = ['processing', 'ongoing', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -327,8 +325,8 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check if user is cashier
-    if (req.user.email !== 'cashier@example.com') {
+    // Check if user is authorized (either cashier or storekeeper)
+    if (req.user.email !== 'cashier@example.com' && req.user.email !== 'storekeeper@example.com') {
       return res.status(403).json({ message: 'Not authorized to update order status' });
     }
 
@@ -336,14 +334,14 @@ export const updateOrderStatus = async (req, res) => {
     await order.save();
 
     // Send email notification to customer on status update
-    if (status === 'on-the-way') {
+    if (status === 'ongoing') {
       await sendMail({
         to: order.billingInfo.email,
         subject: "🚚 Your Order is On the Way - SuperMart",
         html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #2e86de;">Your Order is On the Way, ${order.billingInfo.fullName}!</h2>
-          <p>We’re happy to let you know that your order is on its way to you.</p>
+          <p>We're happy to let you know that your order is on its way to you.</p>
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr style="background-color: #f6f6f6;">
               <td style="padding: 10px;">Order ID:</td>
@@ -376,7 +374,7 @@ export const updateOrderStatus = async (req, res) => {
         html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #2e86de;">Order Delivered, ${order.billingInfo.fullName}!</h2>
-          <p>Your order has been successfully delivered. We hope you’re satisfied!</p>
+          <p>Your order has been successfully delivered. We hope you're satisfied!</p>
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr style="background-color: #f6f6f6;">
               <td style="padding: 10px;">Order ID:</td>

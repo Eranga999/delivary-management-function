@@ -19,17 +19,34 @@ const orderItemSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema({
   user: {
-    type: String, // Using String to support anonymous users temporarily
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
   },
-  items: [orderItemSchema],
-  totalPrice: {
-    type: Number,
-    required: true,
-  },
+  items: [{
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+  }],
   billingInfo: {
-    fullName: { type: String, required: true },
-    email: { type: String, required: true },
+    fullName: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+    },
   },
   shippingAddress: {
     type: String,
@@ -37,15 +54,26 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['online-payment', 'in-store-payment'],
     required: true,
+    enum: ['online-payment', 'in-store-payment'],
+  },
+  totalPrice: {
+    type: Number,
+    required: true,
+    default: 0.0,
   },
   status: {
     type: String,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled','refunded'],
-    default: 'pending',
+    required: true,
+    enum: ['processing', 'ongoing', 'delivered', 'cancelled'],
+    default: 'processing',
   },
-}, { timestamps: true });
+  driverName: {
+    type: String,
+  },
+}, {
+  timestamps: true,
+});
 
 const Order = mongoose.model('Order', orderSchema);
 export default Order;

@@ -6,26 +6,27 @@ const deliveryScheduleSchema = new mongoose.Schema({
     ref: 'Order',
     required: true,
   },
-  driverName: {
-    type: String,
+  driver: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
   },
-  scheduledTime: {
+  status: {
+    type: String,
+    required: true,
+    enum: ['processing', 'ongoing', 'delivered', 'cancelled'],
+    default: 'processing',
+  },
+  scheduledDate: {
     type: Date,
     required: true,
   },
-  deliveryStatus: {
-    type: String,
-    enum: ['Pending', 'In Progress', 'Delivered', 'Cancelled'],
-    default: 'Pending',
-  },
-  customerName: {
+  deliveryAddress: {
     type: String,
     required: true,
   },
-  customerAddress: {
+  notes: {
     type: String,
-    required: true,
   },
 }, { timestamps: true });
 
