@@ -20,10 +20,12 @@ try {
 
 // Chart colors
 const chartColors = {
+  pending: '#FFCE56', // Yellow
   processing: '#4ECDC4', // Teal
-  ongoing: '#45B7D1', // Sky blue
+  'on-the-way': '#45B7D1', // Sky blue
   delivered: '#96CEB4', // Mint green
   cancelled: '#FFEEAD', // Light yellow
+  refunded: '#FF9F40', // Orange
 };
 
 // @desc    Checkout and place an order
@@ -108,78 +110,82 @@ export const checkout = async (req, res) => {
     await order.save({ session });
 
     if (order.paymentMethod === "in-store-payment") {
-      await sendMail({
-        to: email,
-        subject: "🎉 Your Order Confirmation - SuperMart",
-        html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #2e86de;">Thank you for your order, ${fullName}!</h2>
-          <p>We've received your order and are preparing it for shipment.</p>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-            <tr style="background-color: #f6f6f6;">
-              <td style="padding: 10px;">Order ID:</td>
-              <td style="padding: 10px;"><strong>${order._id}</strong></td>
-            </tr>
-            <tr>
-              <td style="padding: 10px;">Total Amount:</td>
-              <td style="padding: 10px;"><strong>$${totalPrice}</strong></td>
-            </tr>
-            <tr style="background-color: #f6f6f6;">
-              <td style="padding: 10px;">Payment Method:</td>
-              <td style="padding: 10px;">${paymentMethod.replace("-", " ")}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px;">Shipping Address:</td>
-              <td style="padding: 10px;">${shippingAddress}</td>
-            </tr>
-            <tr style="background-color: #f6f6f6;">
-              <td style="padding: 10px;">Items:</td>
-              <td style="padding: 10px;">
-                ${orderItems.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
-              </td>
-            </tr>
-          </table>
-          <p style="margin-top: 20px;">We'll notify you once it's on the way. If you have questions, just reply to this email.</p>
-          <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
-        </div>
-      `,
-      });
+      try {
+        await sendMail({
+          to: email,
+          subject: "🎉 Your Order Confirmation - SuperMart",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #2e86de;">Thank you for your order, ${fullName}!</h2>
+              <p>We've received your order and are preparing it for shipment.</p>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <tr style="background-color: #f6f6f6;">
+                  <td style="padding: 10px;">Order ID:</td>
+                  <td style="padding: 10px;"><strong>${order._id}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px;">Total Amount:</td>
+                  <td style="padding: 10px;"><strong>$${totalPrice}</strong></td>
+                </tr>
+                <tr style="background-color: #f6f6f6;">
+                  <td style="padding: 10px;">Payment Method:</td>
+                  <td style="padding: 10px;">${paymentMethod.replace("-", " ")}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px;">Shipping Address:</td>
+                  <td style="padding: 10px;">${shippingAddress}</td>
+                </tr>
+                <tr style="background-color: #f6f6f6;">
+                  <td style="padding: 10px;">Items:</td>
+                  <td style="padding: 10px;">
+                    ${orderItems.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
+                  </td>
+                </tr>
+              </table>
+              <p style="margin-top: 20px;">We'll notify you once it's on the way. If you have questions, just reply to this email.</p>
+              <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
+            </div>
+          `,
+        });
 
-      await sendMail({
-        to: process.env.ADMIN_EMAIL,
-        subject: "🛒 New Order Received - SuperMart",
-        html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-          <h2 style="color: #e67e22;">📦 New Order Placed</h2>
-          <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
-            <tr style="background-color: #f9f9f9;">
-              <td style="padding: 10px; border: 1px solid #ddd;">Customer:</td>
-              <td style="padding: 10px; border: 1px solid #ddd;"><strong>${fullName}</strong> (${email})</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border: 1px solid #ddd;">Order ID:</td>
-              <td style="padding: 10px; border: 1px solid #ddd;">${order._id}</td>
-            </tr>
-            <tr style="background-color: #f9f9f9;">
-              <td style="padding: 10px; border: 1px solid #ddd;">Payment Method:</td>
-              <td style="padding: 10px; border: 1px solid #ddd;">${paymentMethod.replace("-", " ")}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border: 1px solid #ddd;">Total Amount:</td>
-              <td style="padding: 10px; border: 1px solid #ddd;"><strong>$${totalPrice}</strong></td>
-            </tr>
-            <tr style="background-color: #f9f9f9;">
-              <td style="padding: 10px; border: 1px solid #ddd;">Items:</td>
-              <td style="padding: 10px; border: 1px solid #ddd;">
-                ${orderItems.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
-              </td>
-            </tr>
-          </table>
-          <p style="margin-top: 20px;">Check the dashboard for more order details.</p>
-          <p style="color: #aaa; font-size: 12px; margin-top: 40px;">SuperMart Order Notification</p>
-        </div>
-      `,
-      });
+        await sendMail({
+          to: process.env.ADMIN_EMAIL,
+          subject: "🛒 New Order Received - SuperMart",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+              <h2 style="color: #e67e22;">📦 New Order Placed</h2>
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+                <tr style="background-color: #f9f9f9;">
+                  <td style="padding: 10px; border: 1px solid #ddd;">Customer:</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;"><strong>${fullName}</strong> (${email})</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px; border: 1px solid #ddd;">Order ID:</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${order._id}</td>
+                </tr>
+                <tr style="background-color: #f9f9f9;">
+                  <td style="padding: 10px; border: 1px solid #ddd;">Payment Method:</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${paymentMethod.replace("-", " ")}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px; border: 1px solid #ddd;">Total Amount:</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;"><strong>$${totalPrice}</strong></td>
+                </tr>
+                <tr style="background-color: #f9f9f9;">
+                  <td style="padding: 10px; border: 1px solid #ddd;">Items:</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">
+                    ${orderItems.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
+                  </td>
+                </tr>
+              </table>
+              <p style="margin-top: 20px;">Check the dashboard for more order details.</p>
+              <p style="color: #aaa; font-size: 12px; margin-top: 40px;">SuperMart Order Notification</p>
+            </div>
+          `,
+        });
+      } catch (emailError) {
+        console.warn('Failed to send email notification:', emailError.message);
+      }
     }
 
     cart.items = [];
@@ -315,7 +321,7 @@ export const updateOrderStatus = async (req, res) => {
     const { status } = req.body;
 
     // Validate status
-    const validStatuses = ['processing', 'ongoing', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'on-the-way', 'delivered', 'cancelled', 'refunded'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -334,72 +340,76 @@ export const updateOrderStatus = async (req, res) => {
     await order.save();
 
     // Send email notification to customer on status update
-    if (status === 'ongoing') {
-      await sendMail({
-        to: order.billingInfo.email,
-        subject: "🚚 Your Order is On the Way - SuperMart",
-        html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #2e86de;">Your Order is On the Way, ${order.billingInfo.fullName}!</h2>
-          <p>We're happy to let you know that your order is on its way to you.</p>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-            <tr style="background-color: #f6f6f6;">
-              <td style="padding: 10px;">Order ID:</td>
-              <td style="padding: 10px;"><strong>${order._id}</strong></td>
-            </tr>
-            <tr>
-              <td style="padding: 10px;">Shipping Address:</td>
-              <td style="padding: 10px;">${order.shippingAddress}</td>
-            </tr>
-            <tr style="background-color: #f6f6f6;">
-              <td style="padding: 10px;">Total Amount:</td>
-              <td style="padding: 10px;"><strong>$${order.totalPrice}</strong></td>
-            </tr>
-            <tr>
-              <td style="padding: 10px;">Items:</td>
-              <td style="padding: 10px;">
-                ${order.items.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
-              </td>
-            </tr>
-          </table>
-          <p style="margin-top: 20px;">Track your order in the delivery section of our app. If you have questions, reply to this email.</p>
-          <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
-        </div>
-      `,
-      });
-    } else if (status === 'delivered') {
-      await sendMail({
-        to: order.billingInfo.email,
-        subject: "🎉 Your Order Has Been Delivered - SuperMart",
-        html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #2e86de;">Order Delivered, ${order.billingInfo.fullName}!</h2>
-          <p>Your order has been successfully delivered. We hope you're satisfied!</p>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-            <tr style="background-color: #f6f6f6;">
-              <td style="padding: 10px;">Order ID:</td>
-              <td style="padding: 10px;"><strong>${order._id}</strong></td>
-            </tr>
-            <tr>
-              <td style="padding: 10px;">Shipping Address:</td>
-              <td style="padding: 10px;">${order.shippingAddress}</td>
-            </tr>
-            <tr style="background-color: #f6f6f6;">
-              <td style="padding: 10px;">Total Amount:</td>
-              <td style="padding: 10px;"><strong>$${order.totalPrice}</strong></td>
-            </tr>
-            <tr>
-              <td style="padding: 10px;">Items:</td>
-              <td style="padding: 10px;">
-                ${order.items.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
-              </td>
-            </tr>
-          </table>
-          <p style="margin-top: 20px;">If you have any issues, you can request a return or refund in the delivery section. Thank you for shopping with us!</p>
-          <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
-        </div>
-      `,
-      });
+    try {
+      if (status === 'on-the-way') {
+        await sendMail({
+          to: order.billingInfo.email,
+          subject: "🚚 Your Order is On the Way - SuperMart",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #2e86de;">Your Order is On the Way, ${order.billingInfo.fullName}!</h2>
+              <p>We're happy to let you know that your order is on its way to you.</p>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <tr style="background-color: #f6f6f6;">
+                  <td style="padding: 10px;">Order ID:</td>
+                  <td style="padding: 10px;"><strong>${order._id}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px;">Shipping Address:</td>
+                  <td style="padding: 10px;">${order.shippingAddress}</td>
+                </tr>
+                <tr style="background-color: #f6f6f6;">
+                  <td style="padding: 10px;">Total Amount:</td>
+                  <td style="padding: 10px;"><strong>$${order.totalPrice}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px;">Items:</td>
+                  <td style="padding: 10px;">
+                    ${order.items.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
+                  </td>
+                </tr>
+              </table>
+              <p style="margin-top: 20px;">Track your order in the delivery section of our app. If you have questions, reply to this email.</p>
+              <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
+            </div>
+          `,
+        });
+      } else if (status === 'delivered') {
+        await sendMail({
+          to: order.billingInfo.email,
+          subject: "🎉 Your Order Has Been Delivered - SuperMart",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #2e86de;">Order Delivered, ${order.billingInfo.fullName}!</h2>
+              <p>Your order has been successfully delivered. We hope you're satisfied!</p>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <tr style="background-color: #f6f6f6;">
+                  <td style="padding: 10px;">Order ID:</td>
+                  <td style="padding: 10px;"><strong>${order._id}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px;">Shipping Address:</td>
+                  <td style="padding: 10px;">${order.shippingAddress}</td>
+                </tr>
+                <tr style="background-color: #f6f6f6;">
+                  <td style="padding: 10px;">Total Amount:</td>
+                  <td style="padding: 10px;"><strong>$${order.totalPrice}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px;">Items:</td>
+                  <td style="padding: 10px;">
+                    ${order.items.map(item => `${item.quantity}x ${item.product.name} ($${item.price})`).join('<br>')}
+                  </td>
+                </tr>
+              </table>
+              <p style="margin-top: 20px;">If you have any issues, you can request a return or refund in the delivery section. Thank you for shopping with us!</p>
+              <p style="color: #999; font-size: 12px; margin-top: 40px;">SuperMart Team</p>
+            </div>
+          `,
+        });
+      }
+    } catch (emailError) {
+      console.warn('Failed to send email notification:', emailError.message);
     }
 
     res.json({ message: 'Order status updated successfully', order });
