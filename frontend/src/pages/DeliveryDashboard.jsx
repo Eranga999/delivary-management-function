@@ -7,7 +7,7 @@ import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import Spinner from '../components/Spinner';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Explicit import of autoTable
+import autoTable from 'jspdf-autotable';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5555';
 
@@ -71,6 +71,7 @@ const DeliveryDashboard = () => {
         cancelled: deliveryOrders.filter(o => o.status === 'cancelled').length,
         totalDrivers: drivers.length,
       };
+      console.log('Updated deliveryStats:', stats); // Debug log
       setDeliveryStats(stats);
 
       setLoading(false);
@@ -91,6 +92,27 @@ const DeliveryDashboard = () => {
 
   const handleAssignDriver = async (orderId, driverId) => {
     try {
+      // Optimistically update the orders state
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order._id === orderId ? { ...order, status: 'shipped', driverName: drivers.find(d => d.id === driverId).name } : order
+        )
+      );
+
+      // Optimistically update deliveryStats
+      setDeliveryStats(prevStats => {
+        const updatedOrders = orders.map(order =>
+          order._id === orderId ? { ...order, status: 'shipped', driverName: drivers.find(d => d.id === driverId).name } : order
+        );
+        return {
+          ...prevStats,
+          pendingDeliveries: updatedOrders.filter(o => o.status === 'processing').length,
+          inTransit: updatedOrders.filter(o => o.status === 'shipped').length,
+          completed: updatedOrders.filter(o => o.status === 'delivered').length,
+          cancelled: updatedOrders.filter(o => o.status === 'cancelled').length,
+        };
+      });
+
       const config = {
         headers: { Authorization: `Bearer ${user.token}` },
       };
@@ -114,15 +136,37 @@ const DeliveryDashboard = () => {
 
       enqueueSnackbar('Driver assigned successfully', { variant: 'success' });
       setShowAssignModal(false);
-      fetchOrders();
+      await fetchOrders(); // Sync with server
     } catch (error) {
       console.error('Error assigning driver:', error);
       enqueueSnackbar(error.response?.data?.message || 'Failed to assign driver', { variant: 'error' });
+      await fetchOrders(); // Revert to server state on error
     }
   };
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
+      // Optimistically update the orders state
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order._id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+
+      // Optimistically update deliveryStats
+      setDeliveryStats(prevStats => {
+        const updatedOrders = orders.map(order =>
+          order._id === orderId ? { ...order, status: newStatus } : order
+        );
+        return {
+          ...prevStats,
+          pendingDeliveries: updatedOrders.filter(o => o.status === 'processing').length,
+          inTransit: updatedOrders.filter(o => o.status === 'shipped').length,
+          completed: updatedOrders.filter(o => o.status === 'delivered').length,
+          cancelled: updatedOrders.filter(o => o.status === 'cancelled').length,
+        };
+      });
+
       const config = {
         headers: { Authorization: `Bearer ${user.token}` },
       };
@@ -135,10 +179,11 @@ const DeliveryDashboard = () => {
 
       enqueueSnackbar(`Order status updated to ${newStatus}`, { variant: 'success' });
       setShowStatusModal(false);
-      fetchOrders();
+      await fetchOrders(); // Sync with server
     } catch (error) {
       console.error('Error updating order status:', error);
       enqueueSnackbar(error.response?.data?.message || 'Failed to update status', { variant: 'error' });
+      await fetchOrders(); // Revert to server state on error
     }
   };
 
@@ -168,18 +213,15 @@ const DeliveryDashboard = () => {
     const totalOrders = filteredOrders.length;
     const totalValue = filteredOrders.reduce((sum, order) => sum + order.totalPrice, 0);
 
-    // Initialize jsPDF
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 10;
     let yOffset = 20;
 
-    // Add Title
     doc.setFontSize(18);
     doc.text('Delivery Report', margin, yOffset);
     yOffset += 10;
 
-    // Add Summary
     doc.setFontSize(12);
     doc.text(`Customer: ${searchTerm || 'All Customers'}`, margin, yOffset);
     yOffset += 6;
@@ -188,7 +230,6 @@ const DeliveryDashboard = () => {
     doc.text(`Total Value: Rs.${totalValue.toFixed(2)}`, margin, yOffset);
     yOffset += 10;
 
-    // Add Status Distribution
     doc.setFontSize(14);
     doc.text('Status Distribution', margin, yOffset);
     yOffset += 8;
@@ -202,7 +243,6 @@ const DeliveryDashboard = () => {
     doc.text(`Cancelled: ${statusCounts.cancelled}`, margin, yOffset);
     yOffset += 10;
 
-    // Add Orders Table using autoTable
     doc.setFontSize(14);
     doc.text('Order Details', margin, yOffset);
     yOffset += 8;
@@ -216,7 +256,6 @@ const DeliveryDashboard = () => {
       order.items.map(item => `${item.product.name} (x${item.quantity})`).join(', '),
     ]);
 
-    // Use autoTable explicitly
     autoTable(doc, {
       startY: yOffset,
       head: [['Order ID', 'Customer', 'Address', 'Status', 'Total', 'Items']],
@@ -234,11 +273,9 @@ const DeliveryDashboard = () => {
       margin: { left: margin, right: margin },
     });
 
-    // Save the PDF
     const fileName = `delivery_report_${searchTerm || 'all'}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
 
-    // Show success message
     enqueueSnackbar(
       `PDF Report Generated: ${totalOrders} orders for "${searchTerm || 'All Customers'}"`,
       { variant: 'success' }
@@ -492,7 +529,7 @@ const DeliveryDashboard = () => {
                 <p className="font-semibold">Order Information</p>
                 <p>Order ID: {selectedOrder._id}</p>
                 <p>Status: <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(selectedOrder.status)}`}>
-                  {selectedOrder.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
                 </span></p>
                 <p>Total: Rs.{selectedOrder.totalPrice.toFixed(2)}</p>
                 <p>Payment Method: {selectedOrder.paymentMethod}</p>
